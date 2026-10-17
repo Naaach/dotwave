@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>dotwave — minimal usage</title>
+    <meta name="description" content="The whole dotwave integration: one call, four useful lines." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+
+  <body class="example minimal">
+    <header class="topbar">
+      <a class="brand" href="/"><span class="glyph" aria-hidden="true"></span>dotwave</a>
+      <nav class="topnav">
+        <a href="/">Playground</a>
+        <a href="/docs/">Docs</a>
+        <a href="/esm/">ESM</a>
+        <a class="active" href="/minimal/">Minimal</a>
+        <a href="https://www.npmjs.com/package/dotwave">npm</a>
+        <a href="https://github.com/Naaach/dotwave">GitHub</a>
+      </nav>
+    </header>
+
+    <main>
+      <h1>Four lines is enough</h1>
+      <p>
+        The canvas is injected into the container and never intercepts clicks, so this text stays
+        selectable.
+      </p>
+      <p class="links"><a href="/docs/">Read the docs</a></p>
+    </main>
+
+    <script type="module" src="/src/minimal.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>dotwave — ESM usage</title>
+    <meta name="description" content="dotwave imported as an ES module: one import, one call." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+
+  <body class="example esm">
+    <header class="topbar">
+      <a class="brand" href="/"><span class="glyph" aria-hidden="true"></span>dotwave</a>
+      <nav class="topnav">
+        <a href="/">Playground</a>
+        <a href="/docs/">Docs</a>
+        <a class="active" href="/esm/">ESM</a>
+        <a href="/minimal/">Minimal</a>
+        <a href="https://www.npmjs.com/package/dotwave">npm</a>
+        <a href="https://github.com/Naaach/dotwave">GitHub</a>
+      </nav>
+    </header>
+
+    <main>
+      <h1>ESM</h1>
+      <p>
+        Same library, imported as a module — this page writes
+        <code>import { createDotWave } from "dotwave"</code> exactly like your app would.
+      </p>
+      <p class="links"><a href="/docs/">Read the docs</a></p>
+    </main>
+
+    <script type="module" src="/src/esm.ts"></script>
+  </body>
+</html>

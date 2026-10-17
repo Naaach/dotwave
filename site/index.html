@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>dotwave — animated dotted background</title>
+    <meta
+      name="description"
+      content="Interactive playground for dotwave: an animated grid of dots driven by 3D Simplex noise. Tweak every option live."
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+
+  <body class="playground">
+    <!-- Everything inside #stage stays clickable: the canvas ignores pointer events. -->
+    <div id="stage"></div>
+
+    <header class="topbar">
+      <a class="brand" href="/"><span class="glyph" aria-hidden="true"></span>dotwave</a>
+      <nav class="topnav">
+        <a class="active" href="/">Playground</a>
+        <a href="/docs/">Docs</a>
+        <a href="/esm/">ESM</a>
+        <a href="/minimal/">Minimal</a>
+        <a href="https://www.npmjs.com/package/dotwave">npm</a>
+        <a href="https://github.com/Naaach/dotwave">GitHub</a>
+      </nav>
+    </header>
+
+    <div class="hero">
+      <div>
+        <h1>dotwave</h1>
+        <p>
+          A grid of dots driven by 3D Simplex noise.
+          <code>createDotWave({ preset: "aurora", angle: 30 })</code>
+        </p>
+        <p class="hero-links">
+          <a href="/docs/">Documentation</a>
+          <a href="https://www.npmjs.com/package/dotwave">Install</a>
+          <a href="https://github.com/Naaach/dotwave">Source</a>
+        </p>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <h2>Controls <span id="fps">– fps</span></h2>
+
+      <label>
+        <span>Preset</span>
+        <select id="preset">
+          <!-- Populated from presetNames, so it can never drift from the library. -->
+          <option value="custom">custom</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Shape</span>
+        <select id="shape">
+          <option value="dot">dot</option>
+          <option value="ring">ring</option>
+          <option value="square">square</option>
+        </select>
+      </label>
+
+      <div class="row">
+        <label>
+          <span>Dot colour</span>
+          <input type="color" id="dotColor" />
+        </label>
+        <label>
+          <span>Background</span>
+          <input type="color" id="backgroundColor" />
+        </label>
+      </div>
+
+      <label><span>Angle <b id="angleValue">0°</b></span><input type="range" id="angle" min="0" max="90" step="1" /></label>
+      <label><span>Spacing <b id="spacingValue"></b></span><input type="range" id="spacing" min="8" max="80" step="1" /></label>
+      <label><span>Dot radius <b id="dotRadiusValue"></b></span><input type="range" id="dotRadius" min="0.4" max="6" step="0.1" /></label>
+      <label><span>Noise scale <b id="noiseScaleValue"></b></span><input type="range" id="noiseScale" min="0.0005" max="0.01" step="0.0005" /></label>
+      <label><span>Speed <b id="speedValue"></b></span><input type="range" id="speed" min="0" max="0.005" step="0.0001" /></label>
+      <label><span>Gamma <b id="gammaValue"></b></span><input type="range" id="gamma" min="0.5" max="6" step="0.1" /></label>
+      <label><span>Intensity <b id="intensityValue"></b></span><input type="range" id="intensity" min="0.1" max="1" step="0.05" /></label>
+      <label><span>Size variation <b id="sizeVariationValue"></b></span><input type="range" id="sizeVariation" min="0" max="1" step="0.05" /></label>
+
+      <label class="check"><input type="checkbox" id="interactive" /> React to the pointer</label>
+
+      <hr />
+
+      <div class="row">
+        <button id="toggle">Pause</button>
+        <button id="rebuild">Rebuild</button>
+      </div>
+    </aside>
+
+    <script type="module" src="/src/playground.ts"></script>
+  </body>
+</html>

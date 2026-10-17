@@ -1,0 +1,427 @@
+/* Design tokens and shared chrome for the dotwave site: the playground, the
+   docs and the two example pages all pull from the same sheet. */
+
+:root {
+  --bg: #121316;
+  --ink: #e8ecf4;
+  --muted: #8b93a7;
+  --line: rgba(255, 255, 255, 0.1);
+  --panel: rgba(16, 18, 24, 0.72);
+  --accent: #6ee7b7;
+  --accent-soft: rgba(110, 231, 183, 0.14);
+  --code-bg: rgba(255, 255, 255, 0.045);
+  --code-block: rgba(8, 9, 12, 0.78);
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --header-h: 53px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+
+/* ---- top bar ---------------------------------------------------------- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  min-height: var(--header-h);
+  padding: 9px 20px;
+  background: rgba(11, 12, 15, 0.78);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(14px);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.brand:hover {
+  text-decoration: none;
+}
+
+/* A 3x3 grid of dots: the library's whole idea, at 16px. */
+.brand .glyph {
+  width: 16px;
+  height: 16px;
+  background-image: radial-gradient(circle at center, var(--accent) 1.4px, transparent 1.6px);
+  background-size: 5.33px 5.33px;
+}
+
+.topnav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.topnav a {
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.topnav a:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.topnav a.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* ---- footer ----------------------------------------------------------- */
+
+.site-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  padding: 20px 24px 28px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.site-footer a {
+  color: var(--muted);
+}
+
+.site-footer a:hover {
+  color: var(--accent);
+}
+
+/* ---- docs: layout ----------------------------------------------------- */
+
+.docs #stage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.docs {
+  background: #0b0b0d;
+}
+
+.docs-layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 210px minmax(0, 760px);
+  gap: 56px;
+  justify-content: center;
+  padding: 40px 24px 72px;
+}
+
+@media (max-width: 980px) {
+  .docs-layout {
+    grid-template-columns: minmax(0, 760px);
+  }
+
+  .toc {
+    display: none;
+  }
+}
+
+.toc {
+  position: sticky;
+  top: calc(var(--header-h) + 28px);
+  align-self: start;
+  max-height: calc(100vh - var(--header-h) - 56px);
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.toc-title {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.toc a {
+  display: block;
+  padding: 4px 10px;
+  border-left: 2px solid transparent;
+  color: var(--muted);
+}
+
+.toc a:hover {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.toc a.sub {
+  padding-left: 22px;
+}
+
+.toc a.current {
+  border-left-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ---- docs: prose ------------------------------------------------------ */
+
+.prose {
+  min-width: 0;
+}
+
+.prose > :first-child {
+  margin-top: 0;
+}
+
+.prose h1 {
+  margin: 0 0 10px;
+  font-size: clamp(30px, 4.5vw, 42px);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.prose .lead {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 17px;
+}
+
+.prose h2 {
+  margin: 46px 0 12px;
+  font-size: 25px;
+  font-weight: 640;
+  letter-spacing: -0.015em;
+  scroll-margin-top: calc(var(--header-h) + 28px);
+}
+
+.prose h3 {
+  margin: 28px 0 8px;
+  font-size: 18px;
+  font-weight: 620;
+  scroll-margin-top: calc(var(--header-h) + 28px);
+}
+
+.prose p,
+.prose li {
+  color: #c3cad9;
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 22px;
+}
+
+.prose li {
+  margin: 6px 0;
+}
+
+.prose strong {
+  color: var(--ink);
+}
+
+.prose hr {
+  margin: 36px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.prose blockquote {
+  margin: 16px 0;
+  padding: 4px 16px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+}
+
+.note {
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.anchor {
+  margin-left: 10px;
+  color: var(--muted);
+  font-weight: 400;
+  opacity: 0;
+  text-decoration: none;
+}
+
+.prose h2:hover .anchor,
+.prose h3:hover .anchor {
+  opacity: 1;
+}
+
+.anchor:hover {
+  color: var(--accent);
+}
+
+/* ---- docs: tables ----------------------------------------------------- */
+
+.table-wrap {
+  overflow-x: auto;
+  margin: 16px 0 24px;
+}
+
+.table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.table-wrap th,
+.table-wrap td {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table-wrap th {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.table-wrap td {
+  color: #b7bfd0;
+}
+
+.table-wrap td code {
+  white-space: nowrap;
+  color: var(--accent);
+}
+
+/* ---- docs: code ------------------------------------------------------- */
+
+.prose pre {
+  position: relative;
+  margin: 16px 0 24px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--code-block);
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.prose pre code {
+  background: none;
+  padding: 0;
+  color: #d5dbe8;
+  font-size: inherit;
+}
+
+.prose :not(pre) > code {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--code-bg);
+  color: var(--accent);
+}
+
+.copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(20, 22, 28, 0.9);
+  color: var(--muted);
+  font: 11px/1 var(--mono);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.prose pre:hover .copy-btn {
+  opacity: 1;
+}
+
+.copy-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ---- docs: preset switcher -------------------------------------------- */
+
+.preset-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 18px;
+}
+
+.preset-switch button {
+  padding: 6px 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.preset-switch button:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+.preset-switch button.on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #06120d;
+  font-weight: 600;
+}

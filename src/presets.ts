@@ -9,7 +9,7 @@ import type { DotWaveOptions } from "./types";
  * ```
  */
 const presetDefinitions = {
-  /** Slow mint/teal clouds, big soft glow. The safe hero background. */
+  /** Slow mint/teal clouds, big soft blobs. The safe hero background. */
   aurora: {
     spacing: 26,
     dotRadius: 1.5,

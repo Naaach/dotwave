@@ -1,5 +1,20 @@
 # dotwave
 
+## Unreleased
+
+- A documentation site. The playground, the docs and the two examples moved from
+  static files in `examples/` into a Vite app in `site/`, which imports the
+  library source so `pnpm demo` needs no build step. The docs page renders
+  `site/docs/content.md` (same numbers as this repository), with a table of
+  contents, copy buttons and a preset switcher that repaints the page background.
+- `.github/workflows/pages.yml` builds the site and publishes `site/dist` to
+  Cloudflare Pages at https://dotwave.nachodiaz.es on every push to `main`. The
+  Cloudflare secrets are added by hand; until then the workflow builds and skips
+  the upload instead of failing.
+- README: badges, links to the playground and the docs, Vite development and
+  deployment instructions. `package.json` now points `homepage` at the site and
+  the description says Simplex, not Perlin.
+
 ## 0.1.0
 
 Initial release.

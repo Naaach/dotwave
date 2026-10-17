@@ -17,7 +17,11 @@
     "sourceMap": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "dotwave": ["src/index.ts"]
+    }
   },
-  "include": ["src", "test", "tsup.config.ts", "vitest.config.ts"]
+  "include": ["src", "test", "site", "vite.config.ts", "tsup.config.ts", "vitest.config.ts"]
 }

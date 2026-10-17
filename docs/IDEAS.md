@@ -17,17 +17,17 @@ through the issues to find out whether it exists. Pull requests welcome.
 ## Performance and accessibility
 
 - **Devicepixelratio.** The canvas is sized in CSS pixels, so on a retina screen
-  the glow is softer than the reference implementation. `dpr: number` (or
-  `dpr: window.devicePixelRatio`) would scale the backing store and keep the
-  glow crisp. Cheapest win on the list.
+  the dots are softer than a device-pixel-sized backing store would be.
+  `dpr: number` (or `dpr: window.devicePixelRatio`) would scale the backing store
+  and sharpen them. Cheapest win on the list.
 - **Cheaper glow.** ~~One path per dot is what the browser needs to rasterise a
   per-dot shadow, but most of that blur is invisible on dim dots. Skipping the
   shadow on the bottom half of the alpha buckets would cut the cost of the glow
   roughly in half with no visible difference.~~ Measured and removed: the whole
   glow was cut from the library, see Rendering.
-- **Adaptive quality.** Measure frame time and raise `spacing` or lower
-  `glowBlur` when the frame budget is missed, then restore it when there is
-  headroom. Today the budget is a fixed 12,000 dots.
+- **Adaptive quality.** Measure frame time and raise `spacing` when the frame
+  budget is missed, then restore it when there is headroom. Today the budget is a
+  fixed 12,000 dots.
 - **Reduced motion.** `prefers-reduced-motion: reduce` should ship a still frame
   (or a much slower one) instead of ignoring the user setting.
 - **Static mode.** An option that draws exactly one frame and never schedules
@@ -65,3 +65,13 @@ through the issues to find out whether it exists. Pull requests welcome.
   up as the user scrolls. `followPointer` already exists as `interactive`.
 - **`onFrame` hook.** A callback per frame for driving other things in sync.
 - **Recording.** Export the current frame as a PNG, for social cards and docs.
+
+## Site
+
+- **Pre-rendered docs.** The docs page ships `marked` and renders `content.md` in
+  the browser, which is most of that page's ~57 KB bundle. A small build-time
+  plugin would render it once and drop the dependency.
+- **Live previews per preset.** The switcher on the docs page repaints the page
+  background; six small canvases would show every preset side by side instead.
+- **Search.** One page of headings does not need an index yet, but a client-side
+  filter over the table of contents would be the first step.

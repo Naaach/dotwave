@@ -1,0 +1,52 @@
+/* Shared layout for the two tiny example pages (ESM and minimal). */
+
+.example {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.example main {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-content: center;
+  height: calc(100vh - var(--header-h));
+  padding: 0 24px;
+  text-align: center;
+}
+
+.example h1 {
+  margin: 0 0 8px;
+  font-size: clamp(28px, 5vw, 44px);
+  font-weight: 620;
+  letter-spacing: -0.02em;
+}
+
+.example p {
+  max-width: 46ch;
+  margin: 0 auto;
+  color: var(--muted);
+}
+
+.example code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+}
+
+.example .links {
+  margin-top: 18px;
+}
+
+.example .links a {
+  font-size: 14px;
+}
+
+/* esm.html uses the nebula preset, minimal.html the starfield one; both paint
+   the page background themselves, so the body only matches the tone. */
+.example.esm {
+  background: #0b0718;
+}
+
+.example.minimal {
+  background: #05060c;
+}

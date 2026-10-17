@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>dotwave — documentation</title>
+    <meta
+      name="description"
+      content="Full documentation for dotwave: install, options, presets, angled grids and the numbers behind its 60 fps at 4K."
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+
+  <body class="docs">
+    <!-- The background of this page is a real dotwave instance. -->
+    <div id="stage"></div>
+
+    <header class="topbar">
+      <a class="brand" href="/"><span class="glyph" aria-hidden="true"></span>dotwave</a>
+      <nav class="topnav">
+        <a href="/">Playground</a>
+        <a class="active" href="/docs/">Docs</a>
+        <a href="/esm/">ESM</a>
+        <a href="/minimal/">Minimal</a>
+        <a href="https://www.npmjs.com/package/dotwave">npm</a>
+        <a href="https://github.com/Naaach/dotwave">GitHub</a>
+      </nav>
+    </header>
+
+    <div class="docs-layout">
+      <aside class="toc">
+        <p class="toc-title">On this page</p>
+        <nav id="toc"></nav>
+      </aside>
+
+      <article class="prose" id="content">
+        <h1>Documentation</h1>
+        <p class="lead">
+          Everything dotwave can do, in one page. The background you are reading on is
+          <code>createDotWave({ preset: "minimal", angle: 8 })</code>.
+        </p>
+      </article>
+    </div>
+
+    <footer class="site-footer">
+      <span>dotwave is MIT licensed · built by <a href="https://github.com/Naaach">Naaach</a></span>
+      <span>
+        <a href="/">Playground</a> ·
+        <a href="https://www.npmjs.com/package/dotwave">npm</a> ·
+        <a href="https://github.com/Naaach/dotwave">GitHub</a>
+      </span>
+    </footer>
+
+    <script type="module" src="/src/docs.ts"></script>
+  </body>
+</html>

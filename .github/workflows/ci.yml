@@ -36,3 +36,4 @@ jobs:
       - run: pnpm build
       - run: pnpm size
       - run: pnpm smoke
+      - run: pnpm demo:build

@@ -1,0 +1,192 @@
+/* Playground-only layout: full-viewport stage, centred hero, floating panel. */
+
+.playground {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* The library appends its canvas here, so this only has to be a box. */
+#stage {
+  position: fixed;
+  inset: 0;
+}
+
+.playground .hero {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-content: center;
+  height: 100vh;
+  padding: calc(var(--header-h) + 16px) 24px 24px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.playground .hero h1 {
+  margin: 0 0 8px;
+  font-size: clamp(38px, 8vw, 86px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.playground .hero p {
+  max-width: 46ch;
+  margin: 0 auto;
+  color: var(--muted);
+}
+
+.playground .hero code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+  color: var(--accent);
+}
+
+.hero-links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 22px;
+  pointer-events: auto;
+}
+
+.hero-links a {
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(16, 18, 24, 0.6);
+  color: var(--muted);
+  font-size: 13px;
+  backdrop-filter: blur(10px);
+}
+
+.hero-links a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.playground .panel {
+  position: fixed;
+  z-index: 2;
+  top: calc(var(--header-h) + 14px);
+  right: 16px;
+  width: 288px;
+  max-height: calc(100vh - var(--header-h) - 28px);
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  backdrop-filter: blur(14px);
+  font-size: 12px;
+}
+
+.panel h2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.panel h2 span {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.panel label {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.panel label > span {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.panel input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.panel select,
+.panel input[type="color"] {
+  width: 100%;
+  padding: 5px 6px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #14161c;
+  color: var(--ink);
+  font: inherit;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+}
+
+.row > * {
+  flex: 1;
+}
+
+.panel button {
+  width: 100%;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #14161c;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.panel button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.panel .check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: var(--muted);
+}
+
+.panel .check input {
+  accent-color: var(--accent);
+}
+
+.panel hr {
+  margin: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+/* Narrow screens: the topbar wraps, so the floating panel would slide under it.
+   A bottom sheet keeps every control reachable. */
+@media (max-width: 720px) {
+  .playground .panel {
+    top: auto;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: 46vh;
+    border-radius: 14px;
+  }
+
+  .playground .hero {
+    padding-bottom: 46vh;
+  }
+}

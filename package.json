@@ -1,7 +1,7 @@
 {
   "name": "dotwave",
   "version": "0.1.0",
-  "description": "Animated dotted background driven by 3D Perlin noise. Zero dependencies, TypeScript, ESM + CJS + CDN.",
+  "description": "Animated dotted background driven by 3D Simplex noise. Zero dependencies, TypeScript, ESM + CJS + CDN.",
   "type": "module",
   "license": "MIT",
   "sideEffects": false,
@@ -13,14 +13,13 @@
     "simplex",
     "simplex-noise",
     "noise",
-    "perlin",
     "background",
     "animated-background",
     "canvas",
     "dots",
     "grid",
     "particles",
-    "glow",
+    "dot-background",
     "hero",
     "typescript",
     "vanilla",
@@ -30,7 +29,7 @@
     "type": "git",
     "url": "git+https://github.com/Naaach/dotwave.git"
   },
-  "homepage": "https://github.com/Naaach/dotwave#readme",
+  "homepage": "https://dotwave.nachodiaz.es",
   "bugs": "https://github.com/Naaach/dotwave/issues",
   "author": {
     "name": "Naaach",
@@ -61,15 +60,20 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "demo": "node scripts/serve.mjs",
+    "demo": "vite",
+    "demo:build": "vite build",
+    "demo:preview": "vite preview",
     "size": "node scripts/size.mjs",
     "smoke": "node scripts/smoke.mjs",
     "prepublishOnly": "pnpm typecheck && pnpm build && pnpm test && pnpm smoke"
   },
   "devDependencies": {
+    "@types/node": "^26.6.5",
     "jsdom": "^26.1.0",
+    "marked": "^18.1.1",
     "tsup": "^8.5.0",
     "typescript": "^5.9.2",
+    "vite": "^8.3.4",
     "vitest": "^3.2.4"
   }
 }

@@ -2,9 +2,13 @@
 
 [![npm version](https://img.shields.io/npm/v/dotwave)](https://www.npmjs.com/package/dotwave)
 [![CI](https://github.com/Naaach/dotwave/actions/workflows/ci.yml/badge.svg)](https://github.com/Naaach/dotwave/actions/workflows/ci.yml)
+[![Deploy](https://github.com/Naaach/dotwave/actions/workflows/pages.yml/badge.svg)](https://dotwave.nachodiaz.es)
+[![MIT license](https://img.shields.io/badge/license-MIT-6ee7b7.svg)](LICENSE)
 
 > A grid of dots that breathe, driven by 3D Simplex noise.
 > Zero dependencies · TypeScript · ESM + CJS + CDN · ~5 KB gzipped · 60 fps at 4K.
+
+**Playground** https://dotwave.nachodiaz.es · **Docs** https://dotwave.nachodiaz.es/docs/ · **npm** https://www.npmjs.com/package/dotwave
 
 <p align="center">
   <img src="https://github.com/Naaach/dotwave/raw/main/docs/demo.png" alt="dotwave playground: the aurora preset with live controls, an fps counter and a rotated grid" width="840" />
@@ -77,8 +81,9 @@ Plain HTML, no build step:
 </script>
 ```
 
-`run pnpm demo` after `pnpm build` to open the full playground with live
-controls, presets and an fps counter.
+`pnpm demo` starts a Vite dev server with the full playground at
+http://localhost:5173 and this documentation at http://localhost:5173/docs/.
+The pages import the library source, so there is no build step while you work.
 
 ---
 
@@ -236,14 +241,38 @@ export function DotWaveBackground() {
 
 ```bash
 pnpm install
-pnpm test        # 44 tests, jsdom canvas mock
+pnpm demo        # Vite dev server: playground at /, docs at /docs/
+pnpm test        # 48 tests, jsdom canvas mock
 pnpm typecheck
 pnpm build       # ESM + CJS + minified CDN build + types
 pnpm size        # raw / gzip / brotli per file
-pnpm demo        # static server for examples/
+pnpm demo:build  # static site into site/dist
 ```
 
+The repository holds the library in `src/` and the site in `site/`: the
+playground (`site/index.html`), the documentation (`site/docs/`) and two small
+examples. They import `dotwave` through a Vite alias that points at the source,
+so everything on the site is the code in this repository, always.
+
 Ideas that are deliberately not built yet live in [docs/IDEAS.md](docs/IDEAS.md).
+
+## Deployment
+
+[dotwave.nachodiaz.es](https://dotwave.nachodiaz.es) is the `site/dist` build of
+the Vite site, published to Cloudflare Pages by the
+[Deploy](.github/workflows/pages.yml) workflow on every push to `main`.
+
+Cloudflare has to be set up once:
+
+1. Create the project:
+   `npx wrangler pages project create dotwave --production-branch main`
+2. Add two repository secrets: `CLOUDFLARE_API_TOKEN` (a token with the
+   *Cloudflare Pages — Edit* permission) and `CLOUDFLARE_ACCOUNT_ID`.
+3. In the Pages dashboard, add the custom domain `dotwave.nachodiaz.es`.
+
+Without the secrets the workflow still installs, typechecks, tests and builds
+the site, then skips the upload with a notice, so a fork or a fresh clone is
+never red because of deployment.
 
 ## License
 
