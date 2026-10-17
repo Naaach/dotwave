@@ -14,6 +14,13 @@
   CSS and JavaScript and `marked` only arrives with `/docs/`; every navigation
   destroys the previous view (one canvas, no listeners left behind), and
   `site/public/_redirects` sends every path to the router on Cloudflare Pages.
+- The landing page keeps going into the documentation: the docs block sits right
+  below the hero, so scrolling past the playground starts the docs, and the hero's
+  *Documentation* link scrolls to them instead of navigating. The block is written
+  once in a `<template>` and filled in by `site/src/docs-section.ts` for both `/`
+  and `/docs/`, so the two can never drift apart; the landing imports it on demand,
+  which keeps its first paint at ~11 KB gzip. The floating controls belong to the
+  hero, so they scroll away instead of covering the prose.
 - `.github/workflows/pages.yml` builds the site and publishes `site/dist` to
   Cloudflare Pages at https://dotwave.nachodiaz.es on every push to `main`. The
   Cloudflare secrets are added by hand; until then the workflow builds and skips

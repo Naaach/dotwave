@@ -84,8 +84,10 @@ Plain HTML, no build step:
 `pnpm demo` starts a Vite dev server with the whole site at
 http://localhost:5173 — the playground at `/`, the documentation at `/docs/`, the
 two examples at `/esm/` and `/minimal/`. The site is a single-page app: moving
-between those routes swaps views instead of reloading the page. Every view
-imports the library source, so there is no build step while you work.
+between those routes swaps views instead of reloading the page, and the
+documentation also sits right below the playground, so scrolling past the hero
+reads the docs without leaving the page. Every view imports the library source, so
+there is no build step while you work.
 
 ---
 
@@ -255,6 +257,8 @@ The repository holds the library in `src/` and the site in `site/`. The site is
 one document: `site/index.html` is the shell (top bar plus a `<template>` per
 route), `site/src/main.ts` is the router, `site/src/views/` holds one module per
 view and `site/docs/content.md` is the documentation, rendered with `marked`. The
+markdown is written once: `site/src/docs-section.ts` fills the shared `#docs-block`
+into whichever page is showing it, so `/` and `/docs/` can never drift apart. The
 views import `dotwave` through a Vite alias that points at the source, so
 everything on the site is the code in this repository, always.
 

@@ -162,6 +162,16 @@ export const playgroundView: View = {
       frame = requestAnimationFrame(tick);
     }
 
+    // Same block /docs/ renders, right below the hero: scrolling past it reads the
+    // docs. Imported on demand (markdown + prose are most of the site's bytes) and
+    // wired so its preset buttons keep this panel in step.
+    void import("../docs-section")
+      .then(({ mountDocsSection }) => {
+        if (signal.aborted) return;
+        mountDocsSection($<HTMLElement>(".docs-slot"), wave, signal, "aurora", (name) => sync(presets[name], name));
+      })
+      .catch((error) => console.error("dotwave site: the documentation block failed to load", error));
+
     sync(presets.aurora, "aurora");
     frame = requestAnimationFrame(tick);
 

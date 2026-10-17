@@ -1,16 +1,20 @@
-/* Playground-only layout: full-viewport stage, centred hero, floating panel. */
+/* Playground-only layout: full-viewport stage, centred hero, floating panel.
+   The page scrolls: the hero fills the first screen and the documentation follows. */
 
-/* The shell is shared by every route, so the page-level rules hang off the
-   data-view attribute the router writes on <body>. */
-body[data-view="playground"] {
-  height: 100vh;
-  overflow: hidden;
-}
-
-/* The library appends its canvas here, so this only has to be a box. */
+/* The library appends its canvas here, so this only has to be a box. It stays
+   fixed, so the wave also runs behind the documentation further down. */
 .view-playground .stage {
   position: fixed;
   inset: 0;
+}
+
+/* The documentation block below the hero. A flat scrim (not a blur: the canvas
+   animates behind it every frame) keeps the prose readable. */
+.view-playground .docs-slot {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid var(--line);
+  background: rgba(11, 12, 15, 0.72);
 }
 
 .view-playground .hero {
@@ -68,8 +72,11 @@ body[data-view="playground"] {
   text-decoration: none;
 }
 
+/* Absolute, not fixed: the panel belongs to the hero, so scrolling into the
+   documentation leaves it behind instead of covering the text. With no positioned
+   ancestor it resolves against the document, which is exactly where it was. */
 .view-playground .panel {
-  position: fixed;
+  position: absolute;
   z-index: 2;
   top: calc(var(--header-h) + 14px);
   right: 16px;

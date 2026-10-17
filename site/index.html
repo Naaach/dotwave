@@ -23,6 +23,34 @@
     <!-- One template per route. The router clones the matching one into #view,
          mounts the view module on top of it and polls nothing else. -->
 
+    <!-- The documentation is written once: the landing page ends with it, so scrolling
+         past the hero reads the docs, and /docs/ is nothing but this same block. -->
+    <template id="docs-block">
+      <div class="docs-layout" id="documentation">
+        <aside class="toc">
+          <p class="toc-title">On this page</p>
+          <nav id="toc"></nav>
+        </aside>
+
+        <article class="prose" id="content">
+          <h1>Documentation</h1>
+          <p class="lead">
+            Everything dotwave can do, in one page. The background behind this text is a real
+            instance.
+          </p>
+        </article>
+      </div>
+
+      <footer class="site-footer">
+        <span>dotwave is MIT licensed · built by <a href="https://github.com/Naaach">Naaach</a></span>
+        <span>
+          <a href="/">Playground</a> ·
+          <a href="https://www.npmjs.com/package/dotwave">npm</a> ·
+          <a href="https://github.com/Naaach/dotwave">GitHub</a>
+        </span>
+      </footer>
+    </template>
+
     <template id="view-playground">
       <div class="view view-playground">
         <!-- The library appends its canvas here, so this only has to be a box.
@@ -37,7 +65,7 @@
               <code>createDotWave({ preset: "aurora", angle: 30 })</code>
             </p>
             <p class="hero-links">
-              <a href="/docs/">Documentation</a>
+              <a href="#documentation">Documentation</a>
               <a href="https://www.npmjs.com/package/dotwave">Install</a>
               <a href="https://github.com/Naaach/dotwave">Source</a>
             </p>
@@ -93,6 +121,9 @@
             <button id="rebuild">Rebuild</button>
           </div>
         </aside>
+
+        <!-- The documentation continues right here: scrolling past the hero starts it. -->
+        <div class="docs-slot"></div>
       </div>
     </template>
 
@@ -100,30 +131,7 @@
       <div class="view view-docs">
         <!-- The background of this page is a real dotwave instance. -->
         <div class="stage"></div>
-
-        <div class="docs-layout">
-          <aside class="toc">
-            <p class="toc-title">On this page</p>
-            <nav id="toc"></nav>
-          </aside>
-
-          <article class="prose" id="content">
-            <h1>Documentation</h1>
-            <p class="lead">
-              Everything dotwave can do, in one page. The background you are reading on is
-              <code>createDotWave({ preset: "minimal", angle: 8 })</code>.
-            </p>
-          </article>
-        </div>
-
-        <footer class="site-footer">
-          <span>dotwave is MIT licensed · built by <a href="https://github.com/Naaach">Naaach</a></span>
-          <span>
-            <a href="/">Playground</a> ·
-            <a href="https://www.npmjs.com/package/dotwave">npm</a> ·
-            <a href="https://github.com/Naaach/dotwave">GitHub</a>
-          </span>
-        </footer>
+        <div class="docs-slot"></div>
       </div>
     </template>
 

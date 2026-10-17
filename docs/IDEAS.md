@@ -68,10 +68,10 @@ through the issues to find out whether it exists. Pull requests welcome.
 
 ## Site
 
-- **Pre-rendered docs.** The docs route ships `marked` (~18 KB gzip) and renders
-  `content.md` in the browser. A small build-time plugin would render it once,
-  drop the dependency, and give every route its own HTML and meta tags — the one
-  thing a single-page app loses.
+- **Pre-rendered docs.** `marked` (~18 KB gzip) and `content.md` are rendered in
+  the browser, on demand, by `/` and `/docs/` alike. A small build-time plugin
+  would render the markdown once, drop the dependency, and give every route its
+  own HTML and meta tags — the one thing a single-page app loses.
 - **Live previews per preset.** The switcher on the docs page repaints the page
   background; six small canvases would show every preset side by side instead.
 - **Search.** One page of headings does not need an index yet, but a client-side

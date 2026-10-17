@@ -180,6 +180,8 @@ body[data-view="docs"] {
   gap: 56px;
   justify-content: center;
   padding: 40px 24px 72px;
+  /* Where the landing page's "Documentation" link lands, clear of the sticky bar. */
+  scroll-margin-top: calc(var(--header-h) + 12px);
 }
 
 @media (max-width: 980px) {
