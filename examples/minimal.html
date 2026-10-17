@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>dotwave — minimal usage</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        display: grid;
+        place-content: center;
+        background: #121316;
+        color: #e8ecf4;
+        font: 16px/1.6 ui-sans-serif, system-ui, sans-serif;
+        text-align: center;
+      }
+
+      p {
+        max-width: 42ch;
+        color: #8b93a7;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div>
+      <h1>Four lines is enough</h1>
+      <p>The canvas is injected into the container and never intercepts clicks, so this text stays selectable.</p>
+    </div>
+
+    <script src="../dist/index.global.js"></script>
+    <script>
+      // The whole integration: one script tag, one call.
+      const wave = DotWave.createDotWave({
+        container: document.body,
+        preset: "starfield",
+        angle: 20,
+      });
+
+      // Optional: react to the options from a theme switcher, a slider, etc.
+      // wave.updateOptions({ preset: "nebula", interactive: true });
+
+      // Optional: stop drawing when the hero scrolls away.
+      // wave.pause();
+      // wave.destroy();
+    </script>
+  </body>
+</html>

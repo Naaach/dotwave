@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>dotwave — ESM usage</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        display: grid;
+        place-content: center;
+        background: #0b0718;
+        color: #e8ecf4;
+        font: 16px/1.6 ui-sans-serif, system-ui, sans-serif;
+        text-align: center;
+      }
+
+      p {
+        max-width: 48ch;
+        color: #a78bfa;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div>
+      <h1>ESM</h1>
+      <p>Same library, imported as a module. Swap <code>../dist/index.js</code> for the npm package or a CDN URL.</p>
+    </div>
+
+    <script type="module">
+      import { createDotWave, presets } from "../dist/index.js";
+
+      const wave = createDotWave({
+        container: document.body,
+        preset: "nebula",
+        angle: 45,
+        interactive: true,
+      });
+
+      console.log("available presets:", Object.keys(presets));
+
+      // In a framework this is where you'd call wave.destroy() on unmount.
+      addEventListener("pagehide", () => wave.destroy(), { once: true });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,75 @@
+{
+  "name": "dotwave",
+  "version": "0.1.0",
+  "description": "Animated dotted background driven by 3D Perlin noise. Zero dependencies, TypeScript, ESM + CJS + CDN.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "simplex",
+    "simplex-noise",
+    "noise",
+    "perlin",
+    "background",
+    "animated-background",
+    "canvas",
+    "dots",
+    "grid",
+    "particles",
+    "glow",
+    "hero",
+    "typescript",
+    "vanilla",
+    "zero-dependencies"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Naaach/dotwave.git"
+  },
+  "homepage": "https://github.com/Naaach/dotwave#readme",
+  "bugs": "https://github.com/Naaach/dotwave/issues",
+  "author": {
+    "name": "Naaach",
+    "url": "https://github.com/Naaach"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "browser": "./dist/index.global.js",
+  "unpkg": "./dist/index.global.js",
+  "jsdelivr": "./dist/index.global.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "demo": "node scripts/serve.mjs",
+    "size": "node scripts/size.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "prepublishOnly": "pnpm typecheck && pnpm build && pnpm test && pnpm smoke"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
