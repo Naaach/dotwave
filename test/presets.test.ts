@@ -15,7 +15,6 @@ describe("presets", () => {
     for (const [name, preset] of Object.entries(all)) {
       expect(preset.spacing, `${name}.spacing`).toBeGreaterThanOrEqual(4);
       expect(preset.dotRadius, `${name}.dotRadius`).toBeGreaterThan(0);
-      expect(preset.glowBlur, `${name}.glowBlur`).toBeGreaterThanOrEqual(0);
       expect(preset.noiseScale, `${name}.noiseScale`).toBeGreaterThan(0);
       expect(preset.intensity, `${name}.intensity`).toBeGreaterThan(0);
       expect(preset.intensity, `${name}.intensity`).toBeLessThanOrEqual(1);
@@ -47,7 +46,7 @@ describe("presets", () => {
   it("gives each preset its own personality", () => {
     expect(presets.ember.shape).toBe("square");
     expect(presets.radar.shape).toBe("ring");
-    expect(presets.nebula.glowBlur as number).toBeGreaterThan(presets.minimal.glowBlur as number);
+    expect(presets.nebula.spacing as number).toBeLessThan(presets.minimal.spacing as number);
     expect(presets.aurora.interactive).toBe(true);
   });
 });

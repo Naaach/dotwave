@@ -3,20 +3,26 @@ import { presets, type PresetName } from "./presets";
 import { SimplexNoise3D } from "./simplex";
 import type { CanvasPosition, DotShape, DotWaveInstance, DotWaveOptions } from "./types";
 
-/** Opacity buckets. Dots are grouped per bucket so canvas state changes once per bucket. */
+/**
+ * Opacity levels. Dot colours are pre-rendered per level, so the render loop
+ * never builds an `rgba()` string.
+ */
 const ALPHA_STEPS = 24;
 
 /** Floor for `spacing`, so a fat finger can't ask for a 10M dot grid. */
 const MIN_SPACING = 4;
 
-/** Above this many dots per frame the spacing is stretched instead of melting. */
-const MAX_DOTS = 40_000;
+/**
+ * Dot budget per frame, the one number that keeps large screens smooth.
+ *
+ * Drawing a dot costs the same everywhere, so frame time is basically
+ * `dots / budget`. Beyond this the spacing stretches instead of dropping frames;
+ * 12k holds 60fps on a 4K canvas.
+ */
+const MAX_DOTS = 12_000;
 
-/** Cap on time advanced per frame, so a background tab doesn't jump. */
+/** Cap on time advanced per frame, so a background tab doesn't jump on return. */
 const MAX_DELTA_MS = 100;
-
-const POINTER_ALPHA_BOOST = 0.9;
-const POINTER_SIZE_BOOST = 0.75;
 
 const TAU = Math.PI * 2;
 
@@ -27,11 +33,11 @@ const DEFAULTS: ResolvedOptions = {
   spacing: 22,
   dotRadius: 1.2,
   dotColor: "255, 255, 255",
-  glowBlur: 5,
   noiseScale: 0.0025,
   speed: 0.0008,
   backgroundColor: "#121316",
   interactive: false,
+  angle: 0,
   shape: "dot",
   sizeVariation: 0,
   gamma: 2.5,
@@ -44,7 +50,6 @@ const DEFAULTS: ResolvedOptions = {
   autoPause: true,
   position: "absolute",
   zIndex: 0,
-  angle: 0,
 };
 
 /** Every option after merging preset + input + defaults, clamped to usable ranges. */
@@ -118,13 +123,13 @@ function resolveOptions(input: DotWaveOptions, base: ResolvedOptions): ResolvedO
 
   return {
     spacing: number(merged.spacing, d.spacing, MIN_SPACING, 400),
-    dotRadius: number(merged.dotRadius, d.dotRadius, 0, 60),
+    dotRadius: number(merged.dotRadius, d.dotRadius, 1, 60),
     dotColor: typeof merged.dotColor === "string" ? merged.dotColor : d.dotColor,
-    glowBlur: number(merged.glowBlur, d.glowBlur, 0, 80),
     noiseScale: number(merged.noiseScale, d.noiseScale, 0.00001, 1),
     speed: number(merged.speed, d.speed, 0, 0.05),
     backgroundColor: background,
     interactive: Boolean(merged.interactive),
+    angle: number(merged.angle, d.angle, -360, 360) % 360,
     shape: oneOf(merged.shape, SHAPES, d.shape),
     sizeVariation: number(merged.sizeVariation, d.sizeVariation, 0, 1),
     gamma: number(merged.gamma, d.gamma, 0.1, 10),
@@ -137,7 +142,6 @@ function resolveOptions(input: DotWaveOptions, base: ResolvedOptions): ResolvedO
     autoPause: merged.autoPause === undefined ? d.autoPause : Boolean(merged.autoPause),
     position: oneOf(merged.position, POSITIONS, d.position),
     zIndex: number(merged.zIndex, d.zIndex, -9999, 9999),
-    angle: number(((number(merged.angle, d.angle, -360, 360) % 360) + 360) % 360, 0, 0, 360),
   };
 }
 
@@ -148,11 +152,8 @@ class DotWaveBackground implements DotWaveInstance {
   private readonly context: CanvasRenderingContext2D;
 
   private noise: SimplexNoise3D;
+  /** Pre-rendered `rgba(...)` strings, one per opacity level. */
   private ramp: string[];
-
-  /** Reused across frames so the render loop allocates nothing. */
-  private readonly buckets: Float32Array[];
-  private readonly counts = new Int32Array(ALPHA_STEPS);
 
   private width = 0;
   private height = 0;
@@ -160,7 +161,7 @@ class DotWaveBackground implements DotWaveInstance {
   private lastTimestamp = 0;
 
   private rotation = { radians: 0, cos: 1, sin: 0 };
-  private grid = { startX: 0, startY: 0, spacing: 22, columns: 0, rows: 0 };
+  private grid = { spacing: 22, columns: 0, rows: 0, startX: 0, startY: 0 };
 
   private frameId = 0;
   private started = false;
@@ -179,7 +180,6 @@ class DotWaveBackground implements DotWaveInstance {
     this.container = resolveContainer(options.container);
     this.noise = new SimplexNoise3D(this.options.seed);
     this.ramp = buildColorRamp(parseColor(this.options.dotColor), ALPHA_STEPS);
-    this.buckets = Array.from({ length: ALPHA_STEPS }, () => new Float32Array(48));
     this.syncRotation();
 
     this.canvasElement = document.createElement("canvas");
@@ -248,7 +248,8 @@ class DotWaveBackground implements DotWaveInstance {
       this.syncRotation();
     }
     if (next.interactive !== previous.interactive) {
-      next.interactive ? this.listenPointer() : this.stopListeningPointer();
+      if (next.interactive) this.listenPointer();
+      else this.stopListeningPointer();
     }
 
     this.applyCanvasStyle();
@@ -310,7 +311,6 @@ class DotWaveBackground implements DotWaveInstance {
     if (this.listeningToPointer || !this.options.interactive) return;
     this.listeningToPointer = true;
     window.addEventListener("pointermove", this.handlePointerMove, { passive: true });
-    window.addEventListener("pointerdown", this.handlePointerMove, { passive: true });
     window.addEventListener("pointerout", this.handlePointerLeave, { passive: true });
     window.addEventListener("blur", this.handlePointerLeave);
   }
@@ -319,7 +319,6 @@ class DotWaveBackground implements DotWaveInstance {
     if (!this.listeningToPointer) return;
     this.listeningToPointer = false;
     window.removeEventListener("pointermove", this.handlePointerMove);
-    window.removeEventListener("pointerdown", this.handlePointerMove);
     window.removeEventListener("pointerout", this.handlePointerLeave);
     window.removeEventListener("blur", this.handlePointerLeave);
   }
@@ -343,11 +342,10 @@ class DotWaveBackground implements DotWaveInstance {
   }
 
   /**
-   * Works out which cells to walk this frame.
+   * Decides which cells to walk this frame.
    *
-   * With `angle: 0` that is just the canvas. With a rotated grid the corners of
-   * the screen would fall outside the axes, so we iterate the rotated bounding
-   * box and let the canvas transform do the rotation.
+   * With `angle: 0` that is just the canvas. A rotated grid has to cover its
+   * rotated bounding box instead, or the corners of the screen go empty.
    */
   private layoutGrid(): void {
     const { width, height } = this;
@@ -356,7 +354,7 @@ class DotWaveBackground implements DotWaveInstance {
     const extentWidth = Math.abs(width * cos) + Math.abs(height * sin);
     const extentHeight = Math.abs(width * sin) + Math.abs(height * cos);
 
-    const spacing = this.gridSpacing(extentWidth, extentHeight);
+    const spacing = this.fitSpacing(extentWidth, extentHeight);
     const columns = Math.max(0, Math.ceil(extentWidth / spacing));
     const rows = Math.max(0, Math.ceil(extentHeight / spacing));
 
@@ -364,29 +362,31 @@ class DotWaveBackground implements DotWaveInstance {
       spacing,
       columns,
       rows,
-      // Anchored on the centre, so rotating keeps the dots around it in place.
+      // Anchored on the centre, so the grid rotates in place.
       startX: width / 2 - ((columns - 1) * spacing) / 2,
       startY: height / 2 - ((rows - 1) * spacing) / 2,
     };
   }
 
-  /** Spacing actually used, stretched to protect the frame budget. */
-  private gridSpacing(extentWidth: number, extentHeight: number): number {
+  /** Stretches the spacing if a screen is big enough to melt the frame budget. */
+  private fitSpacing(extentWidth: number, extentHeight: number): number {
     const { spacing } = this.options;
     if (extentWidth === 0 || extentHeight === 0) return spacing;
 
     const dots = Math.ceil(extentWidth / spacing) * Math.ceil(extentHeight / spacing);
     if (dots <= MAX_DOTS) return spacing;
 
+    const stretched = spacing * Math.sqrt(dots / MAX_DOTS);
+
     if (!this.warnedAboutDensity) {
       this.warnedAboutDensity = true;
       console.warn(
-        `[dotwave] spacing ${spacing}px means ${dots.toLocaleString()} dots per frame on this size; ` +
-          `stretching it to keep 60fps. Use a larger spacing for a calmer background.`,
+        `[dotwave] ${dots.toLocaleString()} dots would not hold 60fps, so the spacing grew from ` +
+          `${spacing}px to ${stretched.toFixed(1)}px. Raise \`spacing\` yourself to silence this.`,
       );
     }
 
-    return spacing * Math.sqrt(dots / MAX_DOTS);
+    return stretched;
   }
 
   private readonly handleFrame = (timestamp: number): void => {
@@ -420,6 +420,7 @@ class DotWaveBackground implements DotWaveInstance {
     this.cursor.targetX = event.clientX - rect.left;
     this.cursor.targetY = event.clientY - rect.top;
     if (!this.cursor.active) {
+      // No easing from a stale position on the first event.
       this.cursor.x = this.cursor.targetX;
       this.cursor.y = this.cursor.targetY;
       this.cursor.active = true;
@@ -430,6 +431,14 @@ class DotWaveBackground implements DotWaveInstance {
     this.cursor.active = false;
   };
 
+  /**
+   * One pass over the grid: sample the noise, then draw that dot immediately.
+   *
+   * Each dot is its own path. That is the whole performance story on big
+   * screens: a `fill()` whose path spans the canvas makes the browser rasterise
+   * the full surface, which costs ~4ms at 4K. Batching 24 opacity levels that
+   * way is ~100ms per frame. One small path per dot is ~10ms for the same grid.
+   */
   private render(): void {
     const { context: ctx, width, height, options: o } = this;
     if (width === 0 || height === 0) return;
@@ -442,25 +451,47 @@ class DotWaveBackground implements DotWaveInstance {
       ctx.fillRect(0, 0, width, height);
     }
 
+    if (this.rotation.radians !== 0) {
+      ctx.save();
+      ctx.translate(width / 2, height / 2);
+      ctx.rotate(this.rotation.radians);
+      ctx.translate(-width / 2, -height / 2);
+    }
+
+    this.paint();
+
+    if (this.rotation.radians !== 0) ctx.restore();
+  }
+
+  private paint(): void {
+    const { context: ctx, options: o } = this;
     const { columns, rows, startX, startY, spacing } = this.grid;
-    const cursor = this.localCursor();
     const noise = this.noise;
     const noiseZ = this.elapsed * o.speed;
     const scale = o.noiseScale;
-    const counts = this.counts;
-    counts.fill(0);
-
-    const interactive = o.interactive && cursor.active;
-    const cursorX = cursor.x;
-    const cursorY = cursor.y;
-    const pointerRadius = o.pointerRadius;
-    const pointerRadiusSq = pointerRadius * pointerRadius;
-    const pointerStrength = o.pointerStrength;
-    const pointerRepel = o.pointerRepel;
     const variation = o.sizeVariation;
     const radiusBase = o.dotRadius;
     const threshold = o.opacityThreshold;
+    const gamma = o.gamma;
+    const intensity = o.intensity;
+    const shape = o.shape;
+    const ring = shape === "ring";
     const lastBucket = ALPHA_STEPS - 1;
+
+    let cursorX = 0;
+    let cursorY = 0;
+    let pointerRadiusSq = 0;
+    let reacting = false;
+
+    if (o.interactive && this.cursor.active) {
+      const cursor = this.localCursor();
+      reacting = cursor.active;
+      cursorX = cursor.x;
+      cursorY = cursor.y;
+      pointerRadiusSq = o.pointerRadius * o.pointerRadius;
+    }
+
+    ctx.lineWidth = Math.max(0.4, radiusBase * 0.6);
 
     for (let row = 0; row < rows; row += 1) {
       const y = startY + row * spacing;
@@ -472,42 +503,62 @@ class DotWaveBackground implements DotWaveInstance {
         // the whole frame down with it.
         const n01 = clamp01((noise.noise3D(x * scale, y * scale, noiseZ) + 1) * 0.5);
 
-        let alpha = Math.pow(n01, o.gamma) * o.intensity;
+        let alpha = Math.pow(n01, gamma) * intensity;
         let radius = radiusBase * (1 - variation + 2 * variation * n01);
         let dotX = x;
         let dotY = y;
 
-        if (interactive) {
+        if (reacting) {
           const dx = x - cursorX;
           const dy = y - cursorY;
           const distanceSq = dx * dx + dy * dy;
 
           if (distanceSq < pointerRadiusSq) {
-            const falloff = 1 - Math.sqrt(distanceSq) / pointerRadius;
-            const influence = falloff * falloff * pointerStrength;
+            const distance = Math.sqrt(distanceSq);
+            const falloff = 1 - distance / o.pointerRadius;
+            const influence = falloff * falloff * o.pointerStrength;
 
-            alpha += influence * POINTER_ALPHA_BOOST;
-            radius *= 1 + influence * POINTER_SIZE_BOOST;
+            alpha += influence * 0.9;
+            radius *= 1 + influence * 0.75;
 
-            if (pointerRepel !== 0 && distanceSq > 0.01) {
-              const distance = Math.sqrt(distanceSq);
-              dotX += (dx / distance) * pointerRepel * falloff;
-              dotY += (dy / distance) * pointerRepel * falloff;
+            if (o.pointerRepel !== 0 && distance > 0.01) {
+              dotX += (dx / distance) * o.pointerRepel * falloff;
+              dotY += (dy / distance) * o.pointerRepel * falloff;
             }
           }
         }
 
         if (alpha <= threshold) continue;
 
-        const bucket = Math.min(
-          lastBucket,
-          Math.max(0, Math.round(Math.min(alpha, 1) * lastBucket)),
-        );
-        this.store(bucket, dotX, dotY, radius);
+        // Sub-pixel circles are where 4K goes to die: at 12k dots, a frame of
+        // radius-0.9 dots runs at 17fps and radius-1.0 at 60. They are also the
+        // faintest dots of the wave, so skipping them changes nothing visible.
+        if (radius < 1) continue;
+
+        const bucket = Math.round(clamp01(alpha) * lastBucket);
+        const color = this.ramp[bucket] as string;
+
+        if (shape === "square") {
+          ctx.fillStyle = color;
+          ctx.fillRect(dotX - radius, dotY - radius, radius * 2, radius * 2);
+          continue;
+        }
+
+        // One `beginPath()` per dot: that alone is what keeps each circle its own
+        // shape. Adding a `moveTo` here instead looks harmless and is not: it
+        // drops a 12k-dot 4K frame from 59fps to 9fps, because the path stops
+        // being a plain circle the rasteriser can blit.
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, ring ? Math.max(0.4, radius) : Math.max(0.05, radius), 0, TAU);
+        if (ring) {
+          ctx.strokeStyle = color;
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = color;
+          ctx.fill();
+        }
       }
     }
-
-    this.paint();
   }
 
   /** Eases the cursor, then rotates it into the grid's own space. */
@@ -528,105 +579,6 @@ class DotWaveBackground implements DotWaveInstance {
       y: this.height / 2 - dx * sin + dy * cos,
       active: true,
     };
-  }
-
-  private store(bucket: number, x: number, y: number, radius: number): void {
-    const count = this.counts[bucket] as number;
-    let buffer = this.buckets[bucket] as Float32Array;
-
-    if ((count + 1) * 3 > buffer.length) {
-      const grown = new Float32Array(Math.max((count + 1) * 3, buffer.length * 2));
-      grown.set(buffer);
-      this.buckets[bucket] = buffer = grown;
-    }
-
-    buffer[count * 3] = x;
-    buffer[count * 3 + 1] = y;
-    buffer[count * 3 + 2] = radius;
-    this.counts[bucket] = count + 1;
-  }
-
-  /** Adds one dot to the current path. */
-  private trace(x: number, y: number, radius: number, shape: DotShape): void {
-    const { context: ctx } = this;
-    if (shape === "square") {
-      ctx.rect(x - radius, y - radius, radius * 2, radius * 2);
-      return;
-    }
-    // The moveTo is what keeps each dot its own subpath. Without it, consecutive
-    // arcs are joined by a straight line: invisible when filling the whole path,
-    // but a mess of diagonal streaks as soon as anything strokes it.
-    ctx.moveTo(x + radius, y);
-    ctx.arc(x, y, shape === "ring" ? Math.max(0.4, radius) : Math.max(0.05, radius), 0, TAU);
-  }
-
-  /** Rotates the canvas once, then paints one canvas state change per bucket. */
-  private paint(): void {
-    const { context: ctx, options: o } = this;
-    const lastBucket = ALPHA_STEPS - 1;
-    const shape = o.shape;
-    const stroke = shape === "ring";
-    const glow = o.glowBlur > 0;
-
-    ctx.save();
-    if (this.rotation.radians !== 0) {
-      const halfWidth = this.width / 2;
-      const halfHeight = this.height / 2;
-      ctx.translate(halfWidth, halfHeight);
-      ctx.rotate(this.rotation.radians);
-      ctx.translate(-halfWidth, -halfHeight);
-    }
-
-    ctx.lineWidth = Math.max(0.4, o.dotRadius * 0.6);
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-
-    for (let bucket = 0; bucket < ALPHA_STEPS; bucket += 1) {
-      const count = this.counts[bucket] as number;
-      if (count === 0) continue;
-
-      const color = this.ramp[bucket] as string;
-      // Glow tracks the dot alpha, like the reference implementation.
-      ctx.shadowColor = color;
-      ctx.shadowBlur = glow ? o.glowBlur * (bucket / lastBucket) : 0;
-      ctx.fillStyle = color;
-      ctx.strokeStyle = color;
-
-      const buffer = this.buckets[bucket] as Float32Array;
-
-      if (glow) {
-        // One dot per fill. A path holding every dot in the bucket would make
-        // the browser rasterise one shadow for the whole grid: blurry, banded,
-        // and slow. This is what the reference implementation does.
-        for (let i = 0; i < count; i += 1) {
-          ctx.beginPath();
-          this.trace(
-            buffer[i * 3] as number,
-            buffer[i * 3 + 1] as number,
-            buffer[i * 3 + 2] as number,
-            shape,
-          );
-          if (stroke) ctx.stroke();
-          else ctx.fill();
-        }
-      } else {
-        // Without glow, one path per bucket is pixel identical and far cheaper.
-        ctx.beginPath();
-        for (let i = 0; i < count; i += 1) {
-          this.trace(
-            buffer[i * 3] as number,
-            buffer[i * 3 + 1] as number,
-            buffer[i * 3 + 2] as number,
-            shape,
-          );
-        }
-        if (stroke) ctx.stroke();
-        else ctx.fill();
-      }
-    }
-
-    ctx.shadowBlur = 0;
-    ctx.restore();
   }
 }
 

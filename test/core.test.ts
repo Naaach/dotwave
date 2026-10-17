@@ -90,88 +90,63 @@ describe("rendering", () => {
     expect(countOf("arc")).toBeGreaterThan(0);
   });
 
-  it("batches every dot of an alpha bucket into one path when there is no glow", async () => {
+  it("draws one small path per dot, never a canvas-wide fill", async () => {
     const dotwave = background({
       container: sizedContainer(400, 300),
       spacing: 20,
-      glowBlur: 0,
       opacityThreshold: 0,
     });
     await frames(3);
     dotwave.pause();
 
     const perFrame = (method: string) => countOf(method) / 3;
-    // 300 cells, but only a handful of fills and paths.
+
+    // A `fill()` whose path spans the canvas makes the browser rasterise the
+    // whole surface: ~4ms at 4K. One path per dot keeps every fill tiny, and
+    // this assertion is what stops that regression coming back.
     expect(perFrame("arc")).toBe(300);
-    expect(perFrame("fill")).toBeLessThanOrEqual(24);
-    expect(perFrame("beginPath")).toBeLessThanOrEqual(24);
+    expect(perFrame("beginPath")).toBe(300);
+    expect(perFrame("fill")).toBe(300);
+    expect(countOf("shadowBlur")).toBe(0);
   });
 
-  it("draws one dot at a time when there is a glow, but still sets state per bucket", async () => {
+  it("reuses pre-rendered colours instead of building strings", async () => {
     const dotwave = background({
-      container: sizedContainer(400, 300),
+      container: sizedContainer(600, 400),
       spacing: 20,
-      glowBlur: 5,
       opacityThreshold: 0,
     });
-    await frames(3);
+    await frames(2);
     dotwave.pause();
 
-    const perFrame = (method: string) => countOf(method) / 3;
-    // A single path holding every dot would make the browser rasterise one
-    // shadow for the whole grid: banded, blurry and slow.
-    expect(perFrame("fill")).toBe(300);
-    expect(perFrame("beginPath")).toBe(300);
+    const styles = recorded()
+      .filter((call) => call.method === "fillStyle")
+      .map((call) => call.args[0]);
 
-    // The expensive part is the shadow state, and that still changes per bucket.
-    expect(perFrame("shadowBlur")).toBeLessThanOrEqual(25);
-  });
-
-  it("keeps the glow in sync with the dot alpha", async () => {
-    const maxBlurFor = async (intensity: number): Promise<number> => {
-      const dotwave = background({
-        container: sizedContainer(1200, 800),
-        spacing: 40,
-        glowBlur: 20,
-        intensity,
-        opacityThreshold: 0,
-      });
-      await frames(2);
-      dotwave.pause();
-
-      const blurs = recorded()
-        .filter((call) => call.method === "shadowBlur")
-        .map((call) => call.args[0] as number);
-
-      // The last write of every frame resets the shadow.
-      expect(blurs[blurs.length - 1]).toBe(0);
-      expect(new Set(blurs).size).toBeGreaterThan(2);
-
-      const peak = Math.max(...blurs);
-      expect(peak).toBeLessThanOrEqual(20);
-      return peak;
-    };
-
-    // Dots can never be brighter than `intensity`, so the glow has to follow:
-    // a dimmer background means a weaker blur for the same noise field.
-    const dim = await maxBlurFor(0.15);
-    const bright = await maxBlurFor(1);
-
-    expect(dim).toBeGreaterThan(0);
-    expect(bright).toBeGreaterThan(dim);
+    expect(styles.length).toBeGreaterThan(100);
+    // Hundreds of dots, at most one rgba() string per opacity level.
+    expect(new Set(styles).size).toBeLessThanOrEqual(24);
   });
 
   it("draws every cell when the threshold is 0 and culls dim dots otherwise", async () => {
     const cells = 20 * 15;
 
-    const generous = background({ container: sizedContainer(400, 300), spacing: 20, opacityThreshold: 0 });
+    const generous = background({
+      container: sizedContainer(400, 300),
+      spacing: 20,
+      opacityThreshold: 0,
+    });
     await frames(2);
     generous.pause();
     expect(countOf("arc")).toBe(cells * 2);
 
     resetRecording();
 
-    const strict = background({ container: sizedContainer(400, 300), spacing: 20, opacityThreshold: 0.5 });
+    const strict = background({
+      container: sizedContainer(400, 300),
+      spacing: 20,
+      opacityThreshold: 0.5,
+    });
     await frames(2);
     strict.pause();
     expect(countOf("arc")).toBeLessThan(cells * 2);
@@ -193,7 +168,8 @@ describe("rendering", () => {
     const square = background({ container: sizedContainer(200, 200), shape: "square" });
     await frames(2);
     square.pause();
-    expect(countOf("rect")).toBeGreaterThan(0);
+    // Squares are `fillRect`, not a path: cheaper, and pixel-crisp by design.
+    expect(countOf("fillRect")).toBeGreaterThan(0);
     expect(countOf("arc")).toBe(0);
 
     resetRecording();
@@ -205,26 +181,31 @@ describe("rendering", () => {
     expect(countOf("fill")).toBe(0);
   });
 
-  it("keeps every dot in its own subpath when a batch is stroked", async () => {
+  it("keeps every dot in its own path, without a moveTo", async () => {
     const dotwave = background({
       container: sizedContainer(400, 300),
       spacing: 40,
       shape: "ring",
-      glowBlur: 0,
       opacityThreshold: 0,
     });
     await frames(2);
     dotwave.pause();
 
-    // Consecutive arcs without a moveTo get joined by a straight line, which
-    // fill() hides and stroke() turns into a screen full of streaks.
+    // One beginPath per dot isolates each circle, so there is nothing to join.
+    // A moveTo here looks harmless and is not: it drops a 12k-dot 4K frame from
+    // 59fps to 9fps, because the path stops being a circle the rasteriser blits.
     const arcs = countOf("arc");
     expect(arcs).toBeGreaterThan(0);
-    expect(countOf("moveTo")).toBe(arcs);
+    expect(countOf("beginPath")).toBe(arcs);
+    expect(countOf("moveTo")).toBe(0);
   });
 
   it("changes geometry with sizeVariation", async () => {
-    const flat = background({ container: sizedContainer(300, 300), opacityThreshold: 0, sizeVariation: 0 });
+    const flat = background({
+      container: sizedContainer(300, 300),
+      opacityThreshold: 0,
+      sizeVariation: 0,
+    });
     await frames(2);
     flat.pause();
     const flatRadii = new Set(
@@ -479,7 +460,8 @@ describe("lifecycle", () => {
     await frames(2);
     dotwave.pause();
 
-    expect(countOf("rect")).toBeGreaterThan(0);
+    // The ember preset is square shaped.
+    expect(countOf("fillRect")).toBeGreaterThan(0);
   });
 
   it("cleans up completely on destroy", async () => {

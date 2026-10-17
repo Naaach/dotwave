@@ -39,26 +39,30 @@ let currentContext: MockContext = createContext();
 function createContext(): MockContext {
   const context: MockContext = {
     canvas: null,
-    fillStyle: "",
-    strokeStyle: "",
     lineWidth: 1,
-    globalAlpha: 1,
-    globalCompositeOperation: "source-over",
     shadowColor: "",
     shadowOffsetX: 0,
     shadowOffsetY: 0,
   };
 
-  // Property writes are recorded too, because shadowBlur is where the render
-  // loop either wins or loses.
-  let shadowBlur = 0;
-  Object.defineProperty(context, "shadowBlur", {
-    get: () => shadowBlur,
-    set: (value: number) => {
-      shadowBlur = value;
-      calls.push({ method: "shadowBlur", args: [value] });
-    },
-  });
+  // Property writes that matter for the render loop are recorded too. shadowBlur
+  // stays here purely so a test can prove the library never touches it.
+  const record = (name: string, initial: unknown): void => {
+    let value = initial;
+    Object.defineProperty(context, name, {
+      get: () => value,
+      set: (next: unknown) => {
+        value = next;
+        calls.push({ method: name, args: [next] });
+      },
+    });
+  };
+
+  record("shadowBlur", 0);
+  record("globalCompositeOperation", "source-over");
+  record("globalAlpha", 1);
+  record("fillStyle", "");
+  record("strokeStyle", "");
 
   for (const method of METHODS) {
     context[method] = (...args: unknown[]) => {

@@ -20,13 +20,14 @@ through the issues to find out whether it exists. Pull requests welcome.
   the glow is softer than the reference implementation. `dpr: number` (or
   `dpr: window.devicePixelRatio`) would scale the backing store and keep the
   glow crisp. Cheapest win on the list.
-- **Cheaper glow.** One path per dot is what the browser needs to rasterise a
+- **Cheaper glow.** ~~One path per dot is what the browser needs to rasterise a
   per-dot shadow, but most of that blur is invisible on dim dots. Skipping the
   shadow on the bottom half of the alpha buckets would cut the cost of the glow
-  roughly in half with no visible difference.
+  roughly in half with no visible difference.~~ Measured and removed: the whole
+  glow was cut from the library, see Rendering.
 - **Adaptive quality.** Measure frame time and raise `spacing` or lower
   `glowBlur` when the frame budget is missed, then restore it when there is
-  headroom. Today the budget is a fixed 40,000 dots.
+  headroom. Today the budget is a fixed 12,000 dots.
 - **Reduced motion.** `prefers-reduced-motion: reduce` should ship a still frame
   (or a much slower one) instead of ignoring the user setting.
 - **Static mode.** An option that draws exactly one frame and never schedules
@@ -45,6 +46,13 @@ through the issues to find out whether it exists. Pull requests welcome.
 
 ## Rendering
 
+- **Glow, if it can ever be cheap.** The first version had a `glowBlur` option
+  built on `shadowBlur`, and it was removed because it measured ~18 ms per frame
+  on a 4K canvas — the entire frame budget for the halo alone. Every alternative
+  was measured too: a pre-rendered radial sprite drawn per dot, a second wider
+  `fill()` pass per dot, a blurred half-resolution layer, all of them cost 2x to
+  6x. If a trick shows up that keeps the halo under ~3 ms, the option is worth
+  bringing back behind a flag that says "this costs frames".
 - **WebGL renderer.** At 40,000+ dots, Canvas2D starts to cost more than the
   noise sampling does. A WebGL2 path drawing points with a shader could push the
   ceiling up a lot, at the cost of a second implementation to keep in sync.

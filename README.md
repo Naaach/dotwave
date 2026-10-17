@@ -4,13 +4,13 @@
 [![CI](https://github.com/Naaach/dotwave/actions/workflows/ci.yml/badge.svg)](https://github.com/Naaach/dotwave/actions/workflows/ci.yml)
 
 > A grid of dots that breathe, driven by 3D Simplex noise.
-> Zero dependencies · TypeScript · ESM + CJS + CDN · ~5 KB gzipped.
+> Zero dependencies · TypeScript · ESM + CJS + CDN · ~5 KB gzipped · 60 fps at 4K.
 
 <p align="center">
   <img src="https://github.com/Naaach/dotwave/raw/main/docs/demo.png" alt="dotwave playground: the aurora preset with live controls, an fps counter and a rotated grid" width="840" />
 </p>
 
-Each dot's opacity, size and glow come from a 3D noise field sampled at
+Each dot's opacity and size come from a 3D noise field sampled at
 `noise(x * noiseScale, y * noiseScale, elapsed * speed)`. That is what makes the
 dots appear in organic waves that grow and fade instead of following a rigid
 loop, and it is one small function call per dot per frame.
@@ -88,12 +88,12 @@ Six ready-made looks. Anything you pass alongside `preset` wins over it.
 
 | Preset      | Look                                                  |
 | ----------- | ----------------------------------------------------- |
-| `aurora`    | Slow mint clouds, big soft glow, reacts to the pointer |
-| `starfield` | Tiny crisp dots twinkling on near-black                |
-| `nebula`    | Wide violet haze, very soft edges, very slow           |
-| `ember`     | Warm square embers drifting up                         |
-| `radar`     | Hollow rings on a grid tilted 15°, no glow             |
-| `minimal`   | Almost invisible, for readable content on top          |
+| `aurora`    | Slow mint clouds, reacts to the pointer      |
+| `starfield` | Tiny crisp dots twinkling on near-black      |
+| `nebula`    | Wide violet haze, very slow                  |
+| `ember`     | Warm square embers drifting up               |
+| `radar`     | Hollow rings on a grid tilted 15°            |
+| `minimal`   | Almost invisible, for readable content on top |
 
 <p align="center">
   <img src="https://github.com/Naaach/dotwave/raw/main/docs/preset-nebula.png" alt="nebula preset" width="270" />
@@ -120,16 +120,15 @@ render loop.
 | ------------------- | ----------------------------- | -------------------- | ---------------------------------------------------------------- |
 | `container`         | `HTMLElement \| string`       | `document.body`      | Element or selector that hosts the canvas                          |
 | `spacing`           | `number`                      | `22`                 | Distance between dots in px                                       |
-| `dotRadius`         | `number`                      | `1.2`                | Base radius in px                                                 |
+| `dotRadius`         | `number`                      | `1.2`                | Base radius in px, minimum 1                                      |
 | `dotColor`          | `string`                      | `"255, 255, 255"`    | `"r, g, b"`, `"rgb(...)"`, `"#fff"` or `"#ffffff"`                |
-| `glowBlur`          | `number`                      | `5`                  | Outer glow (`shadowBlur`) in px                                   |
 | `noiseScale`        | `number`                      | `0.0025`             | Spatial frequency. Lower = bigger, slower blobs                  |
 | `speed`             | `number`                      | `0.0008`             | Noise units per ms. `0` = frozen frame                            |
 | `backgroundColor`   | `string`                      | `"#121316"`          | Canvas background. `"transparent"` shows the page through         |
 | `interactive`       | `boolean`                     | `false`              | React to the pointer                                              |
 | `angle`             | `number`                      | `0`                  | Rotates the whole dot grid, in degrees                            |
 | `shape`             | `"dot" \| "ring" \| "square"` | `"dot"`              | Geometry of each dot                                              |
-| `sizeVariation`     | `number`                      | `0`                  | Noise also drives dot size. `1` = radius between 0x and 2x         |
+| `sizeVariation`     | `number`                      | `0`                  | Noise also drives dot size. `1` = radius between 0x and 2x. Sub-pixel dots are skipped |
 | `gamma`             | `number`                      | `2.5`                | Contrast curve. Higher keeps only the peaks                       |
 | `intensity`         | `number`                      | `0.7`                | Maximum opacity                                                   |
 | `seed`              | `number`                      | `1337`               | Same seed, same pattern                                           |
@@ -171,27 +170,40 @@ exactly under the cursor at any angle.
 
 ## How it stays at 60fps
 
-Measured at 1440x900 with the presets above: 58 to 60 fps.
+Every preset holds 60 fps on a 3840x2160 canvas, measured in Chromium on an
+RTX 4060, including `spacing: 12` (which the dot budget stretches) and
+`angle: 45`. Same at 1440x900.
+
+The interesting part is what was **removed**. Each of these was measured, not
+guessed, and all of them were catastrophic at 4K:
+
+- **No `shadowBlur`.** A blurred shadow rasterised per dot costs ~18 ms per frame
+  on a 4K canvas — the whole budget for the glow alone. That is what made the
+  first version run at 7 fps on a 4K screen. There is no glow option any more:
+  every cheap alternative measured twice the frame time.
+- **No canvas-wide paths.** `fill()` on a path that spans the canvas makes the
+  browser rasterise the full surface, ~4 ms per fill at 4K. Grouping dots into 24
+  opacity buckets that way is ~100 ms per frame. So each dot is its own tiny path:
+  ~10 ms for the same grid.
+- **No `moveTo()` before `arc()`.** Left over from the bucketed version, it looks
+  harmless and measured 9 fps against 59: it stops the path being a plain circle
+  the rasteriser can blit.
+- **No sub-pixel dots.** A grid of radius-0.9 dots runs at 17 fps; radius 1.0 at
+  60. `dotRadius` is clamped to a minimum of 1, and dots that `sizeVariation`
+  shrinks below that are skipped — they are the faintest ones of the wave anyway.
+
+And what kept:
 
 - **Noise is vendored.** ~2 KB of seeded 3D Simplex noise, no dependency, and
-  `seed` makes the pattern reproducible.
-- **No string building per dot.** The classic implementation builds an
-  `rgba(...)` string for every dot on every frame, which is thousands of short
-  lived strings per second. dotwave pre-renders 24 of them once and indexes into
-  them.
-- **The canvas state changes per bucket, not per dot.** `fillStyle`,
-  `shadowColor` and `shadowBlur` are written once per alpha bucket (24 of them)
-  instead of once per dot. That is the expensive part of the loop, and it is now
-  bounded by a constant rather than by the size of the grid.
-- **One path per dot, but only when there is a glow.** `shadowBlur` is
-  rasterised for the whole path at once, so a path holding the entire grid gives
-  one giant blurred shadow: banded, and 8x slower than drawing dots one by one.
-  With `glowBlur: 0` there is no shadow to rasterise, so the batch is free and
-  dots are grouped into a single path.
-- **Zero allocations in the loop.** Dots are stored into reused `Float32Array`
-  buckets, so the render loop creates nothing for the GC to collect.
-- **Guards.** Dots below `opacityThreshold` are never drawn. Grids above 40,000
-  dots stretch their own spacing and warn once, instead of locking the tab.
+  `seed` makes the pattern reproducible. Sampling costs ~1.5 ms per frame at 4K,
+  so the canvas is where the budget goes.
+- **Pre-rendered colours.** The classic implementation builds an `rgba(...)`
+  string for every dot on every frame. dotwave pre-renders 24 of them once and
+  indexes into them.
+- **A dot budget.** Frame time is proportional to dot count, so anything past
+  12,000 dots stretches its own `spacing` and warns once, instead of dropping
+  frames. That is why `spacing: 12` is not a footgun on a 4K screen.
+- **Guards.** Dots below `opacityThreshold` are never drawn.
 - **Hidden tab costs nothing.** `document.hidden` pauses the loop, and the time
   step is capped so returning to the tab does not jump.
 

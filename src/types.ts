@@ -22,9 +22,6 @@ export interface DotWaveOptions {
   /** `"r, g, b"`, `"rgb(...)"`, `"#fff"` or `"#ffffff"`. @default "255, 255, 255" */
   dotColor?: string;
 
-  /** Outer glow intensity (canvas `shadowBlur`) in px. @default 5 */
-  glowBlur?: number;
-
   /** Spatial frequency of the noise. Lower = bigger, slower blobs. @default 0.0025 */
   noiseScale?: number;
 
