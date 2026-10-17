@@ -7,7 +7,7 @@
 > Zero dependencies · TypeScript · ESM + CJS + CDN · ~5 KB gzipped.
 
 <p align="center">
-  <img src="https://github.com/Naaach/dotwave/raw/main/docs/demo.gif" alt="dotwave demo: six presets, live controls, angled grid, pointer reaction" width="840" />
+  <img src="https://github.com/Naaach/dotwave/raw/main/docs/demo.png" alt="dotwave playground: the aurora preset with live controls, an fps counter and a rotated grid" width="840" />
 </p>
 
 Each dot's opacity, size and glow come from a 3D noise field sampled at
@@ -86,14 +86,21 @@ controls, presets and an fps counter.
 
 Six ready-made looks. Anything you pass alongside `preset` wins over it.
 
-| Preset      | Look                                                       |
-| ----------- | ---------------------------------------------------------- |
-| `aurora`    | Slow mint clouds, big soft glow, reacts to the pointer      |
-| `starfield` | Tiny crisp dots twinkling on near-black                     |
-| `nebula`    | Wide violet haze, very soft edges, very slow                |
-| `ember`     | Warm square embers drifting up                              |
-| `radar`     | Hollow rings on a grid tilted 15°, no glow                  |
-| `minimal`   | Almost invisible, for readable content on top               |
+| Preset      | Look                                                  |
+| ----------- | ----------------------------------------------------- |
+| `aurora`    | Slow mint clouds, big soft glow, reacts to the pointer |
+| `starfield` | Tiny crisp dots twinkling on near-black                |
+| `nebula`    | Wide violet haze, very soft edges, very slow           |
+| `ember`     | Warm square embers drifting up                         |
+| `radar`     | Hollow rings on a grid tilted 15°, no glow             |
+| `minimal`   | Almost invisible, for readable content on top          |
+
+<p align="center">
+  <img src="https://github.com/Naaach/dotwave/raw/main/docs/preset-nebula.png" alt="nebula preset" width="270" />
+  <img src="https://github.com/Naaach/dotwave/raw/main/docs/preset-ember.png" alt="ember preset" width="270" />
+  <img src="https://github.com/Naaach/dotwave/raw/main/docs/preset-radar.png" alt="radar preset, rings on a tilted grid" width="270" />
+  <img src="https://github.com/Naaach/dotwave/raw/main/docs/preset-starfield.png" alt="starfield preset" width="270" />
+</p>
 
 ```ts
 import { createDotWave, presets, presetNames } from "dotwave";
@@ -164,15 +171,29 @@ exactly under the cursor at any angle.
 
 ## How it stays at 60fps
 
+Measured at 1440x900 with the presets above: 58 to 60 fps.
+
 - **Noise is vendored.** ~2 KB of seeded 3D Simplex noise, no dependency, and
   `seed` makes the pattern reproducible.
-- **Alpha batching.** The classic implementation sets `shadowBlur` and builds
-  two `rgba()` strings *per dot per frame*, around 4,000 state changes and 4,000
-  string allocations at 1080p. dotwave quantises opacity into 24 buckets, groups
-  the dots and touches the canvas state 24 times per frame instead. The render
-  loop allocates nothing: buckets are reused `Float32Array`s.
-- **Guards.** Dots below `opacityThreshold` are skipped. Grids above 40,000 dots
-  stretch their own spacing and warn once, instead of locking the tab.
+- **No string building per dot.** The classic implementation builds an
+  `rgba(...)` string for every dot on every frame, which is thousands of short
+  lived strings per second. dotwave pre-renders 24 of them once and indexes into
+  them.
+- **The canvas state changes per bucket, not per dot.** `fillStyle`,
+  `shadowColor` and `shadowBlur` are written once per alpha bucket (24 of them)
+  instead of once per dot. That is the expensive part of the loop, and it is now
+  bounded by a constant rather than by the size of the grid.
+- **One path per dot, but only when there is a glow.** `shadowBlur` is
+  rasterised for the whole path at once, so a path holding the entire grid gives
+  one giant blurred shadow: banded, and 8x slower than drawing dots one by one.
+  With `glowBlur: 0` there is no shadow to rasterise, so the batch is free and
+  dots are grouped into a single path.
+- **Zero allocations in the loop.** Dots are stored into reused `Float32Array`
+  buckets, so the render loop creates nothing for the GC to collect.
+- **Guards.** Dots below `opacityThreshold` are never drawn. Grids above 40,000
+  dots stretch their own spacing and warn once, instead of locking the tab.
+- **Hidden tab costs nothing.** `document.hidden` pauses the loop, and the time
+  step is capped so returning to the tab does not jump.
 
 ---
 

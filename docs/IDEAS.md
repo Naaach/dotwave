@@ -20,6 +20,10 @@ through the issues to find out whether it exists. Pull requests welcome.
   the glow is softer than the reference implementation. `dpr: number` (or
   `dpr: window.devicePixelRatio`) would scale the backing store and keep the
   glow crisp. Cheapest win on the list.
+- **Cheaper glow.** One path per dot is what the browser needs to rasterise a
+  per-dot shadow, but most of that blur is invisible on dim dots. Skipping the
+  shadow on the bottom half of the alpha buckets would cut the cost of the glow
+  roughly in half with no visible difference.
 - **Adaptive quality.** Measure frame time and raise `spacing` or lower
   `glowBlur` when the frame budget is missed, then restore it when there is
   headroom. Today the budget is a fixed 40,000 dots.

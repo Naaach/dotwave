@@ -257,21 +257,38 @@
         "sizeVariation",
       ];
 
-      /** Accepts "255, 255, 255", "#fff" or "rgb(...)" and returns "#rrggbb". */
+      /** "255, 255, 255" | "rgb(...)" | "#fff" | "#ffffff" -> "#rrggbb" */
       function toHex(value) {
-        const numbers = String(value).match(/\d+/g) ?? ["255", "255", "255"];
+        const text = String(value).trim();
+
+        if (text.startsWith("#")) {
+          const hex = text.slice(1);
+          const full = hex.length === 3 ? [...hex].map((c) => c + c).join("") : hex;
+          return "#" + full.slice(0, 6).toLowerCase();
+        }
+
+        const numbers = text.match(/\d+/g)?.slice(0, 3) ?? ["255", "255", "255"];
         return (
           "#" +
           numbers
-            .slice(0, 3)
             .map((part) => Number(part).toString(16).padStart(2, "0"))
             .join("")
         );
       }
 
-      function rgbToString(value) {
-        const numbers = (value.match(/\d+/g) ?? ["255", "255", "255"]).slice(0, 3).map(Number);
-        return `rgb(${numbers.join(", ")})`;
+      /** "#6ee7b7" -> "110, 231, 183", the format dotColor accepts. */
+      function toRgbString(hex) {
+        return toChannels(hex).join(", ");
+      }
+
+      /** "#6ee7b7" -> "rgb(110, 231, 183)": backgroundColor must be real CSS. */
+      function toCssColor(hex) {
+        return `rgb(${toChannels(hex).join(", ")})`;
+      }
+
+      function toChannels(hex) {
+        const full = hex.replace("#", "");
+        return [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16));
       }
 
       let wave = createDotWave({ container: "#stage", preset: "aurora", interactive: true });
@@ -303,8 +320,8 @@
         const next = {
           shape: $("shape").value,
           interactive: $("interactive").checked,
-          dotColor: rgbToString($("dotColor").value),
-          backgroundColor: rgbToString($("backgroundColor").value),
+          dotColor: toRgbString($("dotColor").value),
+          backgroundColor: toCssColor($("backgroundColor").value),
         };
         for (const id of sliders) next[id] = Number($(id).value);
         return next;

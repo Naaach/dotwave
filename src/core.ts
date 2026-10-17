@@ -64,6 +64,16 @@ function clamp01(value: number): number {
   return value < 0 ? 0 : value > 1 ? 1 : value;
 }
 
+/**
+ * Canvas silently ignores an invalid `fillStyle`, which shows up as the
+ * background keeping the previous frame's colour. Catch it here instead.
+ * Outside a browser there is nothing to validate against, so we let it pass.
+ */
+function isPaintable(value: string): boolean {
+  if (typeof CSS === "undefined" || typeof CSS.supports !== "function") return true;
+  return CSS.supports("color", value);
+}
+
 function resolveContainer(target: DotWaveOptions["container"]): HTMLElement {
   if (typeof target === "string") {
     const found = document.querySelector<HTMLElement>(target);
@@ -97,6 +107,15 @@ function resolveOptions(input: DotWaveOptions, base: ResolvedOptions): ResolvedO
   }
 
   const d = DEFAULTS;
+
+  const background =
+    typeof merged.backgroundColor === "string" ? merged.backgroundColor : d.backgroundColor;
+  if (!isPaintable(background)) {
+    throw new Error(
+      `[dotwave] backgroundColor "${background}" is not a colour the canvas can paint. Use "#121316", "rgb(...)" or "transparent".`,
+    );
+  }
+
   return {
     spacing: number(merged.spacing, d.spacing, MIN_SPACING, 400),
     dotRadius: number(merged.dotRadius, d.dotRadius, 0, 60),
@@ -104,8 +123,7 @@ function resolveOptions(input: DotWaveOptions, base: ResolvedOptions): ResolvedO
     glowBlur: number(merged.glowBlur, d.glowBlur, 0, 80),
     noiseScale: number(merged.noiseScale, d.noiseScale, 0.00001, 1),
     speed: number(merged.speed, d.speed, 0, 0.05),
-    backgroundColor:
-      typeof merged.backgroundColor === "string" ? merged.backgroundColor : d.backgroundColor,
+    backgroundColor: background,
     interactive: Boolean(merged.interactive),
     shape: oneOf(merged.shape, SHAPES, d.shape),
     sizeVariation: number(merged.sizeVariation, d.sizeVariation, 0, 1),
@@ -528,12 +546,27 @@ class DotWaveBackground implements DotWaveInstance {
     this.counts[bucket] = count + 1;
   }
 
+  /** Adds one dot to the current path. */
+  private trace(x: number, y: number, radius: number, shape: DotShape): void {
+    const { context: ctx } = this;
+    if (shape === "square") {
+      ctx.rect(x - radius, y - radius, radius * 2, radius * 2);
+      return;
+    }
+    // The moveTo is what keeps each dot its own subpath. Without it, consecutive
+    // arcs are joined by a straight line: invisible when filling the whole path,
+    // but a mess of diagonal streaks as soon as anything strokes it.
+    ctx.moveTo(x + radius, y);
+    ctx.arc(x, y, shape === "ring" ? Math.max(0.4, radius) : Math.max(0.05, radius), 0, TAU);
+  }
+
   /** Rotates the canvas once, then paints one canvas state change per bucket. */
   private paint(): void {
     const { context: ctx, options: o } = this;
     const lastBucket = ALPHA_STEPS - 1;
     const shape = o.shape;
-    const isRing = shape === "ring";
+    const stroke = shape === "ring";
+    const glow = o.glowBlur > 0;
 
     ctx.save();
     if (this.rotation.radians !== 0) {
@@ -555,43 +588,40 @@ class DotWaveBackground implements DotWaveInstance {
       const color = this.ramp[bucket] as string;
       // Glow tracks the dot alpha, like the reference implementation.
       ctx.shadowColor = color;
-      ctx.shadowBlur = o.glowBlur * (bucket / lastBucket);
+      ctx.shadowBlur = glow ? o.glowBlur * (bucket / lastBucket) : 0;
       ctx.fillStyle = color;
       ctx.strokeStyle = color;
 
       const buffer = this.buckets[bucket] as Float32Array;
-      ctx.beginPath();
 
-      if (isRing) {
+      if (glow) {
+        // One dot per fill. A path holding every dot in the bucket would make
+        // the browser rasterise one shadow for the whole grid: blurry, banded,
+        // and slow. This is what the reference implementation does.
         for (let i = 0; i < count; i += 1) {
-          ctx.arc(
+          ctx.beginPath();
+          this.trace(
             buffer[i * 3] as number,
             buffer[i * 3 + 1] as number,
-            Math.max(0.4, buffer[i * 3 + 2] as number),
-            0,
-            TAU,
+            buffer[i * 3 + 2] as number,
+            shape,
           );
+          if (stroke) ctx.stroke();
+          else ctx.fill();
         }
-        ctx.stroke();
-      } else if (shape === "square") {
-        for (let i = 0; i < count; i += 1) {
-          const x = buffer[i * 3] as number;
-          const y = buffer[i * 3 + 1] as number;
-          const size = buffer[i * 3 + 2] as number;
-          ctx.rect(x - size, y - size, size * 2, size * 2);
-        }
-        ctx.fill();
       } else {
+        // Without glow, one path per bucket is pixel identical and far cheaper.
+        ctx.beginPath();
         for (let i = 0; i < count; i += 1) {
-          ctx.arc(
+          this.trace(
             buffer[i * 3] as number,
             buffer[i * 3 + 1] as number,
-            Math.max(0.05, buffer[i * 3 + 2] as number),
-            0,
-            TAU,
+            buffer[i * 3 + 2] as number,
+            shape,
           );
         }
-        ctx.fill();
+        if (stroke) ctx.stroke();
+        else ctx.fill();
       }
     }
 

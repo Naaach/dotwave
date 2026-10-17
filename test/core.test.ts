@@ -64,6 +64,15 @@ describe("createDotWave", () => {
     expect(() => createDotWave({ preset: "lava" })).toThrow(/aurora/);
   });
 
+  it("throws for a colour the canvas cannot paint", () => {
+    // Canvas ignores an invalid fillStyle, so the background would silently
+    // keep the previous frame's colour.
+    if (typeof CSS === "undefined" || typeof CSS.supports !== "function") return;
+
+    expect(() => createDotWave({ backgroundColor: "rgb(71, 110)" })).toThrow(/backgroundColor/);
+    expect(() => createDotWave({ dotColor: "not a colour" })).toThrow(/dotwave/);
+  });
+
   it("sizes the canvas to the container", () => {
     const dotwave = background({ container: sizedContainer(640, 480) });
     expect(dotwave.canvas.width).toBe(640);
@@ -72,19 +81,84 @@ describe("createDotWave", () => {
 });
 
 describe("rendering", () => {
-  it("paints the background and batches dots into alpha buckets", async () => {
+  it("paints the background", async () => {
     const dotwave = background({ container: sizedContainer(400, 300), spacing: 20 });
     await frames(3);
     dotwave.pause();
 
     expect(countOf("fillRect")).toBeGreaterThan(0);
     expect(countOf("arc")).toBeGreaterThan(0);
+  });
 
-    // The point of the batching: canvas state changes per frame stay capped
-    // even with hundreds of dots on screen.
-    const framesDrawn = 3;
-    expect(countOf("fill") / framesDrawn).toBeLessThanOrEqual(24);
-    expect(countOf("arc")).toBeLessThan(24 * framesDrawn * 40);
+  it("batches every dot of an alpha bucket into one path when there is no glow", async () => {
+    const dotwave = background({
+      container: sizedContainer(400, 300),
+      spacing: 20,
+      glowBlur: 0,
+      opacityThreshold: 0,
+    });
+    await frames(3);
+    dotwave.pause();
+
+    const perFrame = (method: string) => countOf(method) / 3;
+    // 300 cells, but only a handful of fills and paths.
+    expect(perFrame("arc")).toBe(300);
+    expect(perFrame("fill")).toBeLessThanOrEqual(24);
+    expect(perFrame("beginPath")).toBeLessThanOrEqual(24);
+  });
+
+  it("draws one dot at a time when there is a glow, but still sets state per bucket", async () => {
+    const dotwave = background({
+      container: sizedContainer(400, 300),
+      spacing: 20,
+      glowBlur: 5,
+      opacityThreshold: 0,
+    });
+    await frames(3);
+    dotwave.pause();
+
+    const perFrame = (method: string) => countOf(method) / 3;
+    // A single path holding every dot would make the browser rasterise one
+    // shadow for the whole grid: banded, blurry and slow.
+    expect(perFrame("fill")).toBe(300);
+    expect(perFrame("beginPath")).toBe(300);
+
+    // The expensive part is the shadow state, and that still changes per bucket.
+    expect(perFrame("shadowBlur")).toBeLessThanOrEqual(25);
+  });
+
+  it("keeps the glow in sync with the dot alpha", async () => {
+    const maxBlurFor = async (intensity: number): Promise<number> => {
+      const dotwave = background({
+        container: sizedContainer(1200, 800),
+        spacing: 40,
+        glowBlur: 20,
+        intensity,
+        opacityThreshold: 0,
+      });
+      await frames(2);
+      dotwave.pause();
+
+      const blurs = recorded()
+        .filter((call) => call.method === "shadowBlur")
+        .map((call) => call.args[0] as number);
+
+      // The last write of every frame resets the shadow.
+      expect(blurs[blurs.length - 1]).toBe(0);
+      expect(new Set(blurs).size).toBeGreaterThan(2);
+
+      const peak = Math.max(...blurs);
+      expect(peak).toBeLessThanOrEqual(20);
+      return peak;
+    };
+
+    // Dots can never be brighter than `intensity`, so the glow has to follow:
+    // a dimmer background means a weaker blur for the same noise field.
+    const dim = await maxBlurFor(0.15);
+    const bright = await maxBlurFor(1);
+
+    expect(dim).toBeGreaterThan(0);
+    expect(bright).toBeGreaterThan(dim);
   });
 
   it("draws every cell when the threshold is 0 and culls dim dots otherwise", async () => {
@@ -129,6 +203,24 @@ describe("rendering", () => {
     ring.pause();
     expect(countOf("stroke")).toBeGreaterThan(0);
     expect(countOf("fill")).toBe(0);
+  });
+
+  it("keeps every dot in its own subpath when a batch is stroked", async () => {
+    const dotwave = background({
+      container: sizedContainer(400, 300),
+      spacing: 40,
+      shape: "ring",
+      glowBlur: 0,
+      opacityThreshold: 0,
+    });
+    await frames(2);
+    dotwave.pause();
+
+    // Consecutive arcs without a moveTo get joined by a straight line, which
+    // fill() hides and stroke() turns into a screen full of streaks.
+    const arcs = countOf("arc");
+    expect(arcs).toBeGreaterThan(0);
+    expect(countOf("moveTo")).toBe(arcs);
   });
 
   it("changes geometry with sizeVariation", async () => {

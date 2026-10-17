@@ -44,11 +44,21 @@ function createContext(): MockContext {
     lineWidth: 1,
     globalAlpha: 1,
     globalCompositeOperation: "source-over",
-    shadowBlur: 0,
     shadowColor: "",
     shadowOffsetX: 0,
     shadowOffsetY: 0,
   };
+
+  // Property writes are recorded too, because shadowBlur is where the render
+  // loop either wins or loses.
+  let shadowBlur = 0;
+  Object.defineProperty(context, "shadowBlur", {
+    get: () => shadowBlur,
+    set: (value: number) => {
+      shadowBlur = value;
+      calls.push({ method: "shadowBlur", args: [value] });
+    },
+  });
 
   for (const method of METHODS) {
     context[method] = (...args: unknown[]) => {
