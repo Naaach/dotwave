@@ -1,0 +1,4 @@
+# dotwave is a single-page app: every path is resolved by the router in
+# site/src/main.ts, so Cloudflare Pages serves the shell for all of them.
+# (This file is copied to the root of the build output untouched.)
+/*    /index.html   200

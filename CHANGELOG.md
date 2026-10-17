@@ -7,6 +7,13 @@
   library source so `pnpm demo` needs no build step. The docs page renders
   `site/docs/content.md` (same numbers as this repository), with a table of
   contents, copy buttons and a preset switcher that repaints the page background.
+- The site is a single-page app. `site/index.html` is a shell with one
+  `<template>` per route and `site/src/main.ts` swaps the views client-side, so
+  moving between the playground, the docs and the examples never reloads the
+  page. Each view is a dynamic import, so the landing page ships ~11 KB gzip of
+  CSS and JavaScript and `marked` only arrives with `/docs/`; every navigation
+  destroys the previous view (one canvas, no listeners left behind), and
+  `site/public/_redirects` sends every path to the router on Cloudflare Pages.
 - `.github/workflows/pages.yml` builds the site and publishes `site/dist` to
   Cloudflare Pages at https://dotwave.nachodiaz.es on every push to `main`. The
   Cloudflare secrets are added by hand; until then the workflow builds and skips

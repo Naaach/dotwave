@@ -5,9 +5,13 @@ import { defineConfig } from "vite";
 const repo = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
 export default defineConfig({
-  // The site (playground + docs) lives in site/ and always runs against the
-  // library source, so `pnpm demo` works without a previous `pnpm build`.
+  // The site lives in site/ and always runs against the library source, so
+  // `pnpm demo` works without a previous `pnpm build`.
   root: repo("./site/"),
+
+  // The whole site is one document: site/src/main.ts routes between views, so any
+  // deep link (/docs/, /esm/, a typo) has to fall back to index.html.
+  appType: "spa",
 
   resolve: {
     alias: { dotwave: repo("./src/index.ts") },
@@ -17,14 +21,6 @@ export default defineConfig({
     // site/dist — ignored by the root `dist` gitignore rule.
     outDir: "dist",
     emptyOutDir: true,
-    rollupOptions: {
-      input: {
-        playground: repo("./site/index.html"),
-        docs: repo("./site/docs/index.html"),
-        esm: repo("./site/esm/index.html"),
-        minimal: repo("./site/minimal/index.html"),
-      },
-    },
   },
 
   server: { port: 5173 },

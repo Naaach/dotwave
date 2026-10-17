@@ -1,17 +1,19 @@
 /* Playground-only layout: full-viewport stage, centred hero, floating panel. */
 
-.playground {
+/* The shell is shared by every route, so the page-level rules hang off the
+   data-view attribute the router writes on <body>. */
+body[data-view="playground"] {
   height: 100vh;
   overflow: hidden;
 }
 
 /* The library appends its canvas here, so this only has to be a box. */
-#stage {
+.view-playground .stage {
   position: fixed;
   inset: 0;
 }
 
-.playground .hero {
+.view-playground .hero {
   position: relative;
   z-index: 1;
   display: grid;
@@ -22,20 +24,20 @@
   pointer-events: none;
 }
 
-.playground .hero h1 {
+.view-playground .hero h1 {
   margin: 0 0 8px;
   font-size: clamp(38px, 8vw, 86px);
   font-weight: 600;
   letter-spacing: -0.03em;
 }
 
-.playground .hero p {
+.view-playground .hero p {
   max-width: 46ch;
   margin: 0 auto;
   color: var(--muted);
 }
 
-.playground .hero code {
+.view-playground .hero code {
   font-family: var(--mono);
   font-size: 0.9em;
   color: var(--accent);
@@ -66,7 +68,7 @@
   text-decoration: none;
 }
 
-.playground .panel {
+.view-playground .panel {
   position: fixed;
   z-index: 2;
   top: calc(var(--header-h) + 14px);
@@ -176,7 +178,7 @@
 /* Narrow screens: the topbar wraps, so the floating panel would slide under it.
    A bottom sheet keeps every control reachable. */
 @media (max-width: 720px) {
-  .playground .panel {
+  .view-playground .panel {
     top: auto;
     bottom: 12px;
     left: 12px;
@@ -186,7 +188,7 @@
     border-radius: 14px;
   }
 
-  .playground .hero {
+  .view-playground .hero {
     padding-bottom: 46vh;
   }
 }

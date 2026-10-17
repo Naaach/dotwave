@@ -81,9 +81,11 @@ Plain HTML, no build step:
 </script>
 ```
 
-`pnpm demo` starts a Vite dev server with the full playground at
-http://localhost:5173 and this documentation at http://localhost:5173/docs/.
-The pages import the library source, so there is no build step while you work.
+`pnpm demo` starts a Vite dev server with the whole site at
+http://localhost:5173 — the playground at `/`, the documentation at `/docs/`, the
+two examples at `/esm/` and `/minimal/`. The site is a single-page app: moving
+between those routes swaps views instead of reloading the page. Every view
+imports the library source, so there is no build step while you work.
 
 ---
 
@@ -249,10 +251,12 @@ pnpm size        # raw / gzip / brotli per file
 pnpm demo:build  # static site into site/dist
 ```
 
-The repository holds the library in `src/` and the site in `site/`: the
-playground (`site/index.html`), the documentation (`site/docs/`) and two small
-examples. They import `dotwave` through a Vite alias that points at the source,
-so everything on the site is the code in this repository, always.
+The repository holds the library in `src/` and the site in `site/`. The site is
+one document: `site/index.html` is the shell (top bar plus a `<template>` per
+route), `site/src/main.ts` is the router, `site/src/views/` holds one module per
+view and `site/docs/content.md` is the documentation, rendered with `marked`. The
+views import `dotwave` through a Vite alias that points at the source, so
+everything on the site is the code in this repository, always.
 
 Ideas that are deliberately not built yet live in [docs/IDEAS.md](docs/IDEAS.md).
 
@@ -269,6 +273,10 @@ Cloudflare has to be set up once:
 2. Add two repository secrets: `CLOUDFLARE_API_TOKEN` (a token with the
    *Cloudflare Pages — Edit* permission) and `CLOUDFLARE_ACCOUNT_ID`.
 3. In the Pages dashboard, add the custom domain `dotwave.nachodiaz.es`.
+
+Because the site is a single-page app, `site/public/_redirects` rewrites every
+path to `index.html`, so deep links such as `/docs/#options` and typo URLs reach
+the router instead of a 404.
 
 Without the secrets the workflow still installs, typechecks, tests and builds
 the site, then skips the upload with a notice, so a fork or a fresh clone is

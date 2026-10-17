@@ -6,92 +6,165 @@
     <title>dotwave — animated dotted background</title>
     <meta
       name="description"
-      content="Interactive playground for dotwave: an animated grid of dots driven by 3D Simplex noise. Tweak every option live."
+      content="dotwave: an animated grid of dots driven by 3D Simplex noise. Zero dependencies, TypeScript, ~5 KB gzipped, 60 fps at 4K."
     />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
 
-  <body class="playground">
-    <!-- Everything inside #stage stays clickable: the canvas ignores pointer events. -->
-    <div id="stage"></div>
-
+  <body>
     <header class="topbar">
       <a class="brand" href="/"><span class="glyph" aria-hidden="true"></span>dotwave</a>
-      <nav class="topnav">
-        <a class="active" href="/">Playground</a>
-        <a href="/docs/">Docs</a>
-        <a href="/esm/">ESM</a>
-        <a href="/minimal/">Minimal</a>
-        <a href="https://www.npmjs.com/package/dotwave">npm</a>
-        <a href="https://github.com/Naaach/dotwave">GitHub</a>
-      </nav>
+      <!-- Filled from the route table in src/routes.ts, so the nav cannot drift. -->
+      <nav class="topnav" id="topnav"></nav>
     </header>
 
-    <div class="hero">
-      <div>
-        <h1>dotwave</h1>
-        <p>
-          A grid of dots driven by 3D Simplex noise.
-          <code>createDotWave({ preset: "aurora", angle: 30 })</code>
-        </p>
-        <p class="hero-links">
-          <a href="/docs/">Documentation</a>
-          <a href="https://www.npmjs.com/package/dotwave">Install</a>
-          <a href="https://github.com/Naaach/dotwave">Source</a>
-        </p>
+    <main id="view"></main>
+
+    <!-- One template per route. The router clones the matching one into #view,
+         mounts the view module on top of it and polls nothing else. -->
+
+    <template id="view-playground">
+      <div class="view view-playground">
+        <!-- The library appends its canvas here, so this only has to be a box.
+             Everything inside .stage stays clickable: the canvas ignores pointer events. -->
+        <div class="stage"></div>
+
+        <div class="hero">
+          <div>
+            <h1>dotwave</h1>
+            <p>
+              A grid of dots driven by 3D Simplex noise.
+              <code>createDotWave({ preset: "aurora", angle: 30 })</code>
+            </p>
+            <p class="hero-links">
+              <a href="/docs/">Documentation</a>
+              <a href="https://www.npmjs.com/package/dotwave">Install</a>
+              <a href="https://github.com/Naaach/dotwave">Source</a>
+            </p>
+          </div>
+        </div>
+
+        <aside class="panel">
+          <h2>Controls <span id="fps">– fps</span></h2>
+
+          <label>
+            <span>Preset</span>
+            <select id="preset">
+              <!-- Populated from presetNames, so it can never drift from the library. -->
+              <option value="custom">custom</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Shape</span>
+            <select id="shape">
+              <option value="dot">dot</option>
+              <option value="ring">ring</option>
+              <option value="square">square</option>
+            </select>
+          </label>
+
+          <div class="row">
+            <label>
+              <span>Dot colour</span>
+              <input type="color" id="dotColor" />
+            </label>
+            <label>
+              <span>Background</span>
+              <input type="color" id="backgroundColor" />
+            </label>
+          </div>
+
+          <label><span>Angle <b id="angleValue">0°</b></span><input type="range" id="angle" min="0" max="90" step="1" /></label>
+          <label><span>Spacing <b id="spacingValue"></b></span><input type="range" id="spacing" min="8" max="80" step="1" /></label>
+          <label><span>Dot radius <b id="dotRadiusValue"></b></span><input type="range" id="dotRadius" min="0.4" max="6" step="0.1" /></label>
+          <label><span>Noise scale <b id="noiseScaleValue"></b></span><input type="range" id="noiseScale" min="0.0005" max="0.01" step="0.0005" /></label>
+          <label><span>Speed <b id="speedValue"></b></span><input type="range" id="speed" min="0" max="0.005" step="0.0001" /></label>
+          <label><span>Gamma <b id="gammaValue"></b></span><input type="range" id="gamma" min="0.5" max="6" step="0.1" /></label>
+          <label><span>Intensity <b id="intensityValue"></b></span><input type="range" id="intensity" min="0.1" max="1" step="0.05" /></label>
+          <label><span>Size variation <b id="sizeVariationValue"></b></span><input type="range" id="sizeVariation" min="0" max="1" step="0.05" /></label>
+
+          <label class="check"><input type="checkbox" id="interactive" /> React to the pointer</label>
+
+          <hr />
+
+          <div class="row">
+            <button id="toggle">Pause</button>
+            <button id="rebuild">Rebuild</button>
+          </div>
+        </aside>
       </div>
-    </div>
+    </template>
 
-    <aside class="panel">
-      <h2>Controls <span id="fps">– fps</span></h2>
+    <template id="view-docs">
+      <div class="view view-docs">
+        <!-- The background of this page is a real dotwave instance. -->
+        <div class="stage"></div>
 
-      <label>
-        <span>Preset</span>
-        <select id="preset">
-          <!-- Populated from presetNames, so it can never drift from the library. -->
-          <option value="custom">custom</option>
-        </select>
-      </label>
+        <div class="docs-layout">
+          <aside class="toc">
+            <p class="toc-title">On this page</p>
+            <nav id="toc"></nav>
+          </aside>
 
-      <label>
-        <span>Shape</span>
-        <select id="shape">
-          <option value="dot">dot</option>
-          <option value="ring">ring</option>
-          <option value="square">square</option>
-        </select>
-      </label>
+          <article class="prose" id="content">
+            <h1>Documentation</h1>
+            <p class="lead">
+              Everything dotwave can do, in one page. The background you are reading on is
+              <code>createDotWave({ preset: "minimal", angle: 8 })</code>.
+            </p>
+          </article>
+        </div>
 
-      <div class="row">
-        <label>
-          <span>Dot colour</span>
-          <input type="color" id="dotColor" />
-        </label>
-        <label>
-          <span>Background</span>
-          <input type="color" id="backgroundColor" />
-        </label>
+        <footer class="site-footer">
+          <span>dotwave is MIT licensed · built by <a href="https://github.com/Naaach">Naaach</a></span>
+          <span>
+            <a href="/">Playground</a> ·
+            <a href="https://www.npmjs.com/package/dotwave">npm</a> ·
+            <a href="https://github.com/Naaach/dotwave">GitHub</a>
+          </span>
+        </footer>
       </div>
+    </template>
 
-      <label><span>Angle <b id="angleValue">0°</b></span><input type="range" id="angle" min="0" max="90" step="1" /></label>
-      <label><span>Spacing <b id="spacingValue"></b></span><input type="range" id="spacing" min="8" max="80" step="1" /></label>
-      <label><span>Dot radius <b id="dotRadiusValue"></b></span><input type="range" id="dotRadius" min="0.4" max="6" step="0.1" /></label>
-      <label><span>Noise scale <b id="noiseScaleValue"></b></span><input type="range" id="noiseScale" min="0.0005" max="0.01" step="0.0005" /></label>
-      <label><span>Speed <b id="speedValue"></b></span><input type="range" id="speed" min="0" max="0.005" step="0.0001" /></label>
-      <label><span>Gamma <b id="gammaValue"></b></span><input type="range" id="gamma" min="0.5" max="6" step="0.1" /></label>
-      <label><span>Intensity <b id="intensityValue"></b></span><input type="range" id="intensity" min="0.1" max="1" step="0.05" /></label>
-      <label><span>Size variation <b id="sizeVariationValue"></b></span><input type="range" id="sizeVariation" min="0" max="1" step="0.05" /></label>
-
-      <label class="check"><input type="checkbox" id="interactive" /> React to the pointer</label>
-
-      <hr />
-
-      <div class="row">
-        <button id="toggle">Pause</button>
-        <button id="rebuild">Rebuild</button>
+    <template id="view-esm">
+      <div class="view view-example">
+        <div class="stage"></div>
+        <main>
+          <h1>ESM</h1>
+          <p>
+            Same library, imported as a module — this view writes
+            <code>import { createDotWave } from "dotwave"</code> exactly like your app would.
+          </p>
+          <p class="links"><a href="/docs/">Read the docs</a></p>
+        </main>
       </div>
-    </aside>
+    </template>
 
-    <script type="module" src="/src/playground.ts"></script>
+    <template id="view-minimal">
+      <div class="view view-example">
+        <div class="stage"></div>
+        <main>
+          <h1>Four lines is enough</h1>
+          <p>
+            The canvas is injected into the container and never intercepts clicks, so this text stays
+            selectable.
+          </p>
+          <p class="links"><a href="/docs/">Read the docs</a></p>
+        </main>
+      </div>
+    </template>
+
+    <template id="view-not-found">
+      <div class="view view-example view-not-found">
+        <main>
+          <h1>404</h1>
+          <p>That page is not part of the wave.</p>
+          <p class="links"><a href="/">Back to the playground</a> · <a href="/docs/">Documentation</a></p>
+        </main>
+      </div>
+    </template>
+
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
